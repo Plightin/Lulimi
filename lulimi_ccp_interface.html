@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lulimi CCP: Data Contribution</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter Font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        /* Style for active tab */
+        .tab-active {
+            border-bottom-width: 3px;
+            border-color: #3b82f6; /* Blue-500 */
+            color: #1e40af; /* Blue-800 */
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 flex flex-col items-center">
+
+    <!-- Firebase Initialization and State Variables (MUST BE USED) -->
+    <script>
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    </script>
+    
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, where, limit, getDoc, setDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Global variables for Firebase services
+        window.app = null;
+        window.db = null;
+        window.auth = null;
+        window.userId = null;
+        window.isAuthReady = false;
+        
+        // State for the CCP
+        window.currentMode = 'contribute'; // 'contribute' or 'validate'
+        window.currentValidationDoc = null;
+        window.isCorrectionMode = false; // New state variable
+
+        // Set Firebase logging level (optional but helpful for debugging)
+        setLogLevel('error');
+
+        /** Initializes Firebase and authenticates the user. */
+        async function initFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0) {
+                    console.error("Firebase config is missing. Cannot initialize Firestore.");
+                    showToast("Database error: Missing Firebase configuration.", 'error');
+                    return;
+                }
+                
+                window.app = initializeApp(firebaseConfig);
+                window.db = getFirestore(window.app);
+                window.auth = getAuth(window.app);
+
+                // Handle authentication
+                onAuthStateChanged(window.auth, async (user) => {
+                    if (user) {
+                        window.userId = user.uid;
+                        document.getElementById('userIdDisplay').textContent = `User ID: ${window.userId}`;
+                    } else {
+                        // Sign in anonymously if no token is available or if sign-in failed
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(window.auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(window.auth);
+                            }
+                            window.userId = window.auth.currentUser.uid;
+                            document.getElementById('userIdDisplay').textContent = `User ID: ${window.userId}`;
+                        } catch (error) {
+                            console.error("Error signing in:", error);
+                            showToast("Authentication failed. Cannot access database.", 'error');
+                            // Fallback to a random ID if auth fails completely
+                            window.userId = crypto.randomUUID();
+                            document.getElementById('userIdDisplay').textContent = `User ID (Anon): ${window.userId}`;
+                        }
+                    }
+                    window.isAuthReady = true;
+                    // Initial rendering after auth
+                    renderMode(window.currentMode);
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showToast("Failed to connect to Lulimi Database.", 'error');
+            }
+        }
+        
+        /** Utility function to get the Firestore collection path for public, unvalidated data. */
+        function getUnvalidatedCollectionPath() {
+            return `artifacts/${appId}/public/data/unvalidated_sentences`;
+        }
+
+        /** Utility function to get the Firestore collection path for public, validated data. */
+        function getValidatedCollectionPath() {
+            return `artifacts/${appId}/public/data/validated_sentences`;
+        }
+
+        // --- UI Rendering Logic ---
+
+        /** Switches between Contribution and Validation mode. */
+        window.switchMode = function(mode) {
+            window.currentMode = mode;
+            renderMode(mode);
+        }
+
+        /** Renders the appropriate UI container based on the mode. */
+        function renderMode(mode) {
+            const contributeContainer = document.getElementById('contributeContainer');
+            const validateContainer = document.getElementById('validateContainer');
+            const contributeTab = document.getElementById('contributeTab');
+            const validateTab = document.getElementById('validateTab');
+
+            if (mode === 'contribute') {
+                contributeContainer.classList.remove('hidden');
+                validateContainer.classList.add('hidden');
+                contributeTab.classList.add('tab-active');
+                validateTab.classList.remove('tab-active');
+            } else if (mode === 'validate') {
+                contributeContainer.classList.add('hidden');
+                validateContainer.classList.remove('hidden');
+                contributeTab.classList.remove('tab-active');
+                validateTab.classList.add('tab-active');
+                // Load a validation task immediately upon switching to validate mode
+                loadValidationTask();
+            }
+        }
+
+        // --- Contribution Logic ---
+
+        /** Handles submitting a new parallel sentence pair. */
+        window.submitContribution = async function() {
+            if (!window.isAuthReady || !window.db) {
+                showToast("Please wait for database connection...", 'info');
+                return;
+            }
+
+            const zambianLang = document.getElementById('ccpZambianLang').value;
+            const englishText = document.getElementById('ccpEnglishText').value.trim();
+            const zambianText = document.getElementById('ccpZambianText').value.trim();
+            const submitBtn = document.getElementById('contributeSubmitBtn');
+
+            if (!englishText || !zambianText) {
+                showToast("Please enter text for both English and the local language.", 'error');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const docRef = await addDoc(collection(window.db, getUnvalidatedCollectionPath()), {
+                    englishText: englishText,
+                    zambianText: zambianText,
+                    language: zambianLang,
+                    submittedBy: window.userId,
+                    validationCount: 0,
+                    rejections: 0,
+                    status: 'pending',
+                    timestamp: new Date().toISOString()
+                });
+                
+                document.getElementById('ccpEnglishText').value = '';
+                document.getElementById('ccpZambianText').value = '';
+                showToast(`Success! Your contribution was saved for validation (ID: ${docRef.id}).`, 'success');
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                showToast("Submission failed. Check console for details.", 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit for Validation';
+            }
+        }
+
+
+        // --- Validation Logic ---
+        
+        /** Loads a random unvalidated sentence pair for review. */
+        window.loadValidationTask = async function() {
+            if (!window.isAuthReady || !window.db) {
+                document.getElementById('validationTask').textContent = 'Waiting for database connection...';
+                return;
+            }
+
+            // Reset state
+            window.currentValidationDoc = null;
+            window.isCorrectionMode = false;
+            toggleCorrectionMode(false);
+
+            document.getElementById('validationTask').innerHTML = `<p class="text-gray-500 italic">Searching for unvalidated sentences...</p>`;
+            document.getElementById('validationControls').classList.add('hidden');
+            
+            try {
+                // We rely on a simple query and load the first one we find due to Firebase index constraints.
+                const q = query(
+                    collection(window.db, getUnvalidatedCollectionPath()),
+                    where('status', '==', 'pending'),
+                    limit(1)
+                );
+                
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    document.getElementById('validationTask').innerHTML = `
+                        <p class="text-xl text-green-600 font-semibold">🥳 All tasks validated!</p>
+                        <p class="text-gray-500 mt-2">Check back later for new submissions.</p>
+                    `;
+                    document.getElementById('validationControls').classList.add('hidden');
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    window.currentValidationDoc = { id: doc.id, data: data };
+                    
+                    document.getElementById('validationTask').innerHTML = `
+                        <div class="space-y-4">
+                            <p class="text-sm font-medium text-blue-600">Language: ${data.language}</p>
+                            <div class="bg-gray-50 p-4 rounded-lg border">
+                                <p class="text-xs text-gray-500">English Text (Original)</p>
+                                <p class="text-lg font-medium text-gray-800">${data.englishText}</p>
+                            </div>
+                            <!-- Display Area for Zambian Text -->
+                            <div class="bg-white p-4 rounded-lg border border-gray-300 relative shadow-sm">
+                                <p id="validationZambianLabel" class="text-xs text-gray-500">Suggested ${data.language} Translation</p>
+                                <p id="validationZambianTextDisplay" class="text-lg font-medium text-gray-800">${data.zambianText}</p>
+                                
+                                <!-- Editable Correction Area (Hidden by default) -->
+                                <textarea id="validationCorrectionText" rows="4" 
+                                    class="w-full p-2 border border-blue-400 rounded-lg resize-none text-lg font-medium hidden"
+                                    placeholder="Enter your corrected version...">${data.zambianText}</textarea>
+                            </div>
+
+                            <p class="text-sm text-gray-500 pt-2">Submitted by: ${data.submittedBy.substring(0, 8)}... (${data.validationCount} approvals so far)</p>
+                        </div>
+                    `;
+                    document.getElementById('validationControls').classList.remove('hidden');
+                });
+
+            } catch (e) {
+                console.error("Error loading validation task:", e);
+                document.getElementById('validationTask').innerHTML = `<p class="text-red-600">Failed to load task. Error: ${e.message}</p>`;
+                document.getElementById('validationControls').classList.add('hidden');
+            }
+        }
+        
+        /** Toggles the UI into/out of correction mode. */
+        window.toggleCorrectionMode = function(enable) {
+            window.isCorrectionMode = enable;
+            const display = document.getElementById('validationZambianTextDisplay');
+            const correction = document.getElementById('validationCorrectionText');
+            const approveBtn = document.getElementById('approveBtn');
+            const correctionBtn = document.getElementById('correctionBtn');
+            const validationLabel = document.getElementById('validationZambianLabel');
+
+            if (enable) {
+                display.classList.add('hidden');
+                correction.classList.remove('hidden');
+                approveBtn.textContent = '💾 Submit Correction & Finalize';
+                approveBtn.onclick = () => handleValidation('correct');
+                correctionBtn.classList.add('hidden');
+                validationLabel.textContent = 'Corrected Translation (Final Version)';
+            } else {
+                display.classList.remove('hidden');
+                correction.classList.add('hidden');
+                approveBtn.textContent = '✅ Approve (Correct)';
+                approveBtn.onclick = () => handleValidation('approve');
+                correctionBtn.classList.remove('hidden');
+                validationLabel.textContent = `Suggested ${window.currentValidationDoc.data.language} Translation`;
+            }
+        }
+
+        /** Handles approving, correcting, or rejecting a submission. */
+        window.handleValidation = async function(action) {
+            if (!window.currentValidationDoc) {
+                showToast("No active task to validate.", 'error');
+                return;
+            }
+
+            const docRef = doc(window.db, getUnvalidatedCollectionPath(), window.currentValidationDoc.id);
+            const data = window.currentValidationDoc.data;
+            let statusMessage = '';
+            
+            const controlButtons = document.querySelectorAll('#validationControls button');
+            controlButtons.forEach(btn => btn.disabled = true);
+
+            try {
+                let finalZambianText = data.zambianText;
+                let finalize = false;
+
+                if (action === 'approve') {
+                    const newCount = (data.validationCount || 0) + 1;
+                    if (newCount >= 3) {
+                        finalize = true;
+                    } else {
+                        // Just update the count in the unvalidated collection
+                        await updateDoc(docRef, { 
+                            validationCount: newCount 
+                        });
+                        statusMessage = `Sentence approved. Needs ${3 - newCount} more approvals.`;
+                    }
+                } else if (action === 'correct') {
+                    // Correction mode immediately finalizes the document
+                    const correctedText = document.getElementById('validationCorrectionText').value.trim();
+                    if (!correctedText) {
+                        showToast("Correction field cannot be empty.", 'error');
+                        return;
+                    }
+                    finalZambianText = correctedText;
+                    finalize = true;
+                    statusMessage = `Correction submitted and immediately promoted to Gold Standard!`;
+                } else if (action === 'reject') {
+                    // Simple rejection 
+                    await updateDoc(docRef, { rejections: (data.rejections || 0) + 1 });
+                    statusMessage = `Sentence rejected. We'll skip this one for now.`;
+                }
+
+                // Logic for Finalization (Approve >= 3 OR Corrected)
+                if (finalize) {
+                    const validatedDocRef = doc(window.db, getValidatedCollectionPath(), window.currentValidationDoc.id);
+                    await setDoc(validatedDocRef, { 
+                        ...data, 
+                        zambianText: finalZambianText, // Use corrected text if applicable
+                        validationCount: (data.validationCount || 0) + (action === 'approve' ? 1 : 0),
+                        correctedBy: action === 'correct' ? window.userId : null,
+                        status: 'validated',
+                        validatedAt: new Date().toISOString()
+                    });
+                    // Delete from unvalidated collection
+                    await deleteDoc(docRef);
+                    
+                    if (action === 'approve') {
+                        statusMessage = `Sentence **approved and moved** to Gold Standard!`;
+                    }
+                }
+
+                showToast(statusMessage, 'info');
+
+            } catch (e) {
+                console.error("Error during validation action:", e);
+                showToast("Validation failed. Check console.", 'error');
+            } finally {
+                controlButtons.forEach(btn => btn.disabled = false);
+            }
+            
+            // Load the next task regardless of the action taken
+            loadValidationTask();
+        }
+
+
+        /**
+         * Displays a temporary notification message (Toast).
+         * @param {string} message - The message content.
+         * @param {'success'|'error'|'info'} type - The message type.
+         */
+        window.showToast = function(message, type) {
+            const toastElement = document.getElementById('statusMessage');
+            toastElement.innerHTML = message;
+            toastElement.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+
+            if (type === 'success') {
+                toastElement.classList.add('bg-green-100', 'text-green-800');
+            } else if (type === 'error') {
+                toastElement.classList.add('bg-red-100', 'text-red-800');
+            } else {
+                toastElement.classList.add('bg-blue-100', 'text-blue-800');
+            }
+            toastElement.classList.remove('hidden');
+
+            setTimeout(() => {
+                toastElement.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Initialize Firebase on window load
+        window.addEventListener('load', initFirebase);
+    </script>
+
+
+    <!-- Main Container -->
+    <div class="w-full max-w-3xl bg-white shadow-2xl rounded-2xl p-6 sm:p-8">
+        
+        <!-- Header -->
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl font-extrabold text-blue-800">Lulimi CCP</h1>
+            <p class="text-md text-gray-500 mt-1">Community Data Platform: Help build the engine!</p>
+            <p id="userIdDisplay" class="text-xs text-gray-400 mt-2"></p>
+        </header>
+
+        <!-- Mode Tabs -->
+        <div class="flex border-b border-gray-200 mb-8">
+            <button id="contributeTab" onclick="switchMode('contribute')" class="flex-1 py-3 text-center text-gray-600 hover:text-blue-800 transition duration-150 tab-active">
+                Contribute New Data
+            </button>
+            <button id="validateTab" onclick="switchMode('validate')" class="flex-1 py-3 text-center text-gray-600 hover:text-blue-800 transition duration-150">
+                Validate Submissions
+            </button>
+        </div>
+
+        <!-- Status/Toast Message Area -->
+        <div id="statusMessage" class="mt-4 p-3 text-center rounded-lg text-sm hidden"></div>
+
+        <!-- 1. Contribution Interface -->
+        <div id="contributeContainer" class="space-y-6">
+            <p class="text-gray-600 text-sm">Submit high-quality, verified parallel sentences to grow the Lulimi dataset.</p>
+
+            <!-- Language Selector -->
+            <div>
+                <label for="ccpZambianLang" class="block text-sm font-medium text-gray-700 mb-1">Select Zambian Language</label>
+                <select id="ccpZambianLang" class="w-full p-3 border border-gray-300 rounded-lg">
+                    <option value="Nyanja">Nyanja</option>
+                    <option value="Bemba">Bemba</option>
+                    <option value="Tonga">Tonga</option>
+                    <option value="Lozi">Lozi</option>
+                </select>
+            </div>
+
+            <!-- English Input -->
+            <div>
+                <label for="ccpEnglishText" class="block text-sm font-medium text-gray-700 mb-1">English Sentence</label>
+                <textarea id="ccpEnglishText" rows="4" placeholder="Enter a concise English sentence (e.g., The rain is falling today)"
+                          class="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 shadow-sm"></textarea>
+            </div>
+
+            <!-- Zambian Language Input -->
+            <div>
+                <label for="ccpZambianText" class="block text-sm font-medium text-gray-700 mb-1">Zambian Language Translation</label>
+                <textarea id="ccpZambianText" rows="4" placeholder="Enter the exact translation in the selected language (e.g., Mvula ikugwa lero)"
+                          class="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 shadow-sm"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-center pt-4">
+                <button id="contributeSubmitBtn" onclick="submitContribution()"
+                        class="px-8 py-3 text-lg font-semibold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 transform hover:scale-[1.02]">
+                    Submit for Validation
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Validation Interface -->
+        <div id="validateContainer" class="hidden space-y-6">
+            <p class="text-gray-600 text-sm">Review submissions to ensure high-quality training data. A sentence requires 3 approvals to be accepted, or one direct correction.</p>
+            
+            <!-- Validation Task Display -->
+            <div id="validationTask" class="bg-white p-5 rounded-xl border border-blue-200 shadow-md min-h-[200px] flex items-center justify-center">
+                <!-- Content loaded by JS -->
+                <p class="text-gray-500 italic">Load a task to begin...</p>
+            </div>
+
+            <!-- Validation Controls -->
+            <div id="validationControls" class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4 hidden">
+                <button id="approveBtn" onclick="handleValidation('approve')"
+                        class="px-6 py-3 font-semibold bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-150">
+                    ✅ Approve (Correct)
+                </button>
+                <button id="correctionBtn" onclick="toggleCorrectionMode(true)"
+                        class="px-6 py-3 font-semibold bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-150">
+                    ✍️ Suggest Correction
+                </button>
+                <button onclick="handleValidation('reject')"
+                        class="px-6 py-3 font-semibold bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-150">
+                    ❌ Reject (Incorrect)
+                </button>
+                <button onclick="loadValidationTask()"
+                        class="px-6 py-3 font-semibold bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition duration-150">
+                    ⏭️ Skip / Next
+                </button>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
