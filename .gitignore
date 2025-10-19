@@ -1,0 +1,47 @@
+Standard Git ignore file for Python, JavaScript, and Machine Learning Projects
+
+Python
+
+pycache/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+Machine Learning & Large Data
+
+NMT models will be large binaries. Use Git LFS for these.
+
+Exclude model weights and large datasets typically stored outside of Git.
+
+*.h5
+*.pth
+*.pt
+*.bin
+*.weights
+data/
+datasets/
+
+JavaScript/Node (if used for building/deployment)
+
+node_modules/
+/npm-debug.log
+/yarn-debug.log
+
+Firebase/Config (Security)
+
+Keep local configurations out of the public repo
+
+.env
+.firebaserc
+firebase-debug.log
+local-config.json
+
+Operating System Files
+
+.DS_Store
+Thumbs.db
