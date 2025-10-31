@@ -3,39 +3,32 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   id: Build-CCP-Image
   args:
-    - 'build'
-    - '-t'
-    - 'gcr.io/${PROJECT_ID}/lulimi-ccp:${COMMIT_SHA}'
-    - '.'
-    - '-f'
-    - 'ccp/Dockerfile'
-
-# 2. Push the built image to Container Registry
-- name: 'gcr.io/cloud-builders/docker'
-  id: Push-CCP-Image
-  args:
-    - 'push'
-    - 'gcr.io/${PROJECT_ID}/lulimi-ccp:${COMMIT_SHA}'
-
-# 3. Deploy the container image to Cloud Run
+  - 'build'
+  - '-t'
+  - 'gcr.io/$PROJECT_ID/lulimi-ccp:$COMMIT_SHA'
+  - '.' # Use the root directory as the build context
+  - '-f' # Specify the Dockerfile location within the context
+  - 'ccp/Dockerfile'
+  # 2. Deploy the new container image to Google Cloud Run
 - name: 'gcr.io/google.com/cloudsdk/cloud-sdk'
-  id: Deploy-CCP-Service
+  id: Deploy-to-CloudRun
   args:
-    - 'gcloud'
-    - 'run'
-    - 'deploy'
-    - 'lulimi-ccp'
-    - '--image'
-    - 'gcr.io/${PROJECT_ID}/lulimi-ccp:${COMMIT_SHA}'
-    - '--region'
-    - 'africa-south1' # Your specified region
-    - '--allow-unauthenticated'
-    - '--platform'
-    - 'managed'
-    - '--project'
-    - '${PROJECT_ID}'
-
-# Explicit fix for the IAM error: sets the Service Account and Logging options
-serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
+  - 'gcloud'
+  - 'run'
+  - 'deploy'
+  - 'lulimi-ccp'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/lulimi-ccp:$COMMIT_SHA'
+  - '--region'
+  - 'africa-south1'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  # Fix for the persistent "logging" error and explicit Service Account
 options:
   logging: CLOUD_LOGGING_ONLY
+
+serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
+
+images:
+- 'gcr.io/$PROJECT_ID/lulimi-ccp:$COMMIT_SHA'
