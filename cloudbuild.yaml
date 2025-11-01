@@ -49,7 +49,10 @@ steps:
   - '--platform'
   - 'managed'
   - '--verbosity=debug'
-  # Removed --allow-unauthenticated, we do this in the next step
+  # --- THE DEFINITIVE FIX ---
+  # Tell Cloud Run to use the same service account that is running this build.
+  # This account has permission to read from Artifact Registry.
+  - '--service-account=457527257985-compute@developer.gserviceaccount.com'
 
 # 5. Make the deployed service public (fixes the IAM policy error)
 - name: 'gcr.io/cloud-builders/gcloud'
