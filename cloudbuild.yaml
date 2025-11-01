@@ -11,7 +11,8 @@ steps:
   - '-f' # Specify the Dockerfile location within the context
   - 'ccp/Dockerfile'
 
-# 2. GRANT PERMISSIONS: Give Cloud Run Service Agent permission to pull from Artifact Registry
+# 2. --- THE DEFINITIVE FIX ---
+# Grant permission to the CORRECT service account (the Compute Engine SA)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Grant-Permissions
   waitFor: ['Build-CCP-Image'] # Wait for the build to finish
@@ -22,11 +23,11 @@ steps:
   - 'lulimi-repo' # The name of our Artifact Registry repo
   - '--location=africa-south1'
   - '--project=$PROJECT_ID'
-  # This is the Cloud Run Service Agent for your project number (457527257985)
-  - '--member=serviceAccount:service-457527257985@serverless-robot-prod.iam.gserviceaccount.com'
+  # This is the Compute Engine SA, the same one running the deploy
+  - '--member=serviceAccount:457527257985-compute@developer.gserviceaccount.com'
   - '--role=roles/artifactregistry.reader'
 
-# 3. --- FIX: Wait 180 seconds for IAM propagation ---
+# 3. Wait 180 seconds for IAM propagation
 # This gives the permission from Step #2 time to become active.
 - name: 'ubuntu'
   id: Wait-for-IAM-Propagation
@@ -49,9 +50,7 @@ steps:
   - '--platform'
   - 'managed'
   - '--verbosity=debug'
-  # --- THE DEFINITIVE FIX ---
-  # Tell Cloud Run to use the same service account that is running this build.
-  # This account has permission to read from Artifact Registry.
+  # Tell Cloud Run to use the same service account
   - '--service-account=457527257985-compute@developer.gserviceaccount.com'
 
 # 5. Make the deployed service public (fixes the IAM policy error)
@@ -70,7 +69,6 @@ steps:
   
 # Fix for the persistent "logging" error and explicit Service Account
 options:
-  # --- FIX: Corrected typo CLOUD_LOGTGING_ONLY -> CLOUD_LOGGING_ONLY ---
   logging: CLOUD_LOGGING_ONLY
 
 serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
