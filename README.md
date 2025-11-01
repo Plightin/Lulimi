@@ -61,4 +61,5 @@ Frontend: The /frontend/lulimi_ccp_interface.html file can be run directly in an
 📝 Contribution
 
 
-We welcome contributions from native speakers, linguists, and developers! Please check the docs/ folder for the full plan and submit issues or pull requests.
+We welcome contributions from native speakers, linguists, and developers! Please check the docs folder for the full plan and submit issues or pull requests.
+
