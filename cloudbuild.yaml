@@ -6,12 +6,15 @@ steps:
   - 'build'
   - '-t'
   - 'gcr.io/$PROJECT_ID/lulimi-ccp:$COMMIT_SHA'
-  - '.'
-  - '-f'
+  - '.' # Use the root directory as the build context
+  - '-f' # Specify the Dockerfile location within the context
   - 'ccp/Dockerfile'
   
 # 2. Deploy the new container image to Google Cloud Run
-- name: 'gcr.io/google.com/cloudsdk/cloud-sdk'
+# --- FIX ---
+# Updated the builder image from the deprecated 'gcr.io/google.com/cloudsdk/cloud-sdk'
+# to the new standard 'gcr.io/cloud-builders/gcloud'
+- name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-to-CloudRun
   args:
   - 'gcloud'
@@ -26,8 +29,8 @@ steps:
   - 'managed'
   - '--allow-unauthenticated'
   
+# Fix for the persistent "logging" error and explicit Service Account
 options:
-  # FIX: Resolves the persistent error about logging requirements
   logging: CLOUD_LOGGING_ONLY
 
 serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
