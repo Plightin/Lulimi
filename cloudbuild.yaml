@@ -11,12 +11,11 @@ steps:
   - '-f' # Specify the Dockerfile location within the context
   - 'ccp/Dockerfile'
   
-# 2. Deploy the new container image to Google Cloud Run
+# 2. Deploy the new container image (will be private by default)
 - name: 'gcr.io/cloud-builders/gcloud'
-  id: Deploy-to-CloudRun
+  id: Deploy-Service
+  waitFor: ['Build-CCP-Image'] # Explicitly wait for the build
   args:
-  # --- FIX ---
-  # Removed redundant 'gcloud' argument. The builder's entrypoint is already 'gcloud'.
   - 'run'
   - 'deploy'
   - 'lulimi-ccp'
@@ -27,7 +26,21 @@ steps:
   - 'africa-south1'
   - '--platform'
   - 'managed'
-  - '--allow-unauthenticated'
+  # Removed --allow-unauthenticated, we do this in the next step
+
+# 3. Make the deployed service public (fixes the IAM policy error)
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Make-Service-Public
+  waitFor: ['Deploy-Service'] # Wait for the deploy to finish
+  args:
+  - 'run'
+  - 'services'
+  - 'add-iam-policy-binding'
+  - 'lulimi-ccp'
+  - '--project=$PROJECT_ID'
+  - '--region=africa-south1'
+  - '--member=allUsers'
+  - '--role=roles/run.invoker'
   
 # Fix for the persistent "logging" error and explicit Service Account
 options:
