@@ -5,8 +5,6 @@ steps:
   args:
   - 'build'
   - '-t'
-  # --- FIX ---
-  # Switched from deprecated GCR (gcr.io) to Artifact Registry (pkg.dev)
   # This path format is [region]-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/[IMAGE_NAME]
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
   - '.' # Use the root directory as the build context
@@ -17,14 +15,13 @@ steps:
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-to-CloudRun
   args:
-  - 'gcloud'
+  # --- FIX ---
+  # Removed redundant 'gcloud' argument. The builder's entrypoint is already 'gcloud'.
   - 'run'
   - 'deploy'
   - 'lulimi-ccp'
   - '--project=$PROJECT_ID' 
   - '--image'
-  # --- FIX ---
-  # Point the deployment to the new Artifact Registry image path
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
   - '--region'
   - 'africa-south1'
