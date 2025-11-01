@@ -11,9 +11,6 @@ steps:
   - 'ccp/Dockerfile'
   
 # 2. Deploy the new container image to Google Cloud Run
-# --- FIX ---
-# Updated the builder image from the deprecated 'gcr.io/google.com/cloudsdk/cloud-sdk'
-# to the new standard 'gcr.io/cloud-builders/gcloud'
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-to-CloudRun
   args:
@@ -21,6 +18,9 @@ steps:
   - 'run'
   - 'deploy'
   - 'lulimi-ccp'
+  # --- FIX ---
+  # Added the --project flag to be explicit, resolving 'status 2' errors.
+  - '--project=$PROJECT_ID' 
   - '--image'
   - 'gcr.io/$PROJECT_ID/lulimi-ccp:$COMMIT_SHA'
   - '--region'
