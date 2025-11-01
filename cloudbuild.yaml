@@ -42,6 +42,8 @@ steps:
   - 'africa-south1'
   - '--platform'
   - 'managed'
+  # --- FIX: Add debug verbosity to get a clearer error message ---
+  - '--verbosity=debug'
   # Removed --allow-unauthenticated, we do this in the next step
 
 # 4. Make the deployed service public (fixes the IAM policy error)
@@ -60,6 +62,7 @@ steps:
   
 # Fix for the persistent "logging" error and explicit Service Account
 options:
+  # --- FIX: Corrected typo CLOUD_LOGTGING_ONLY -> CLOUD_LOGGING_ONLY ---
   logging: CLOUD_LOGGING_ONLY
 
 serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
