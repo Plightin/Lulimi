@@ -12,7 +12,6 @@ steps:
   - 'ccp/Dockerfile'
 
 # 2. GRANT PERMISSIONS: Give Cloud Run Service Agent permission to pull from Artifact Registry
-# This fixes the "Image not found" error during deployment.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Grant-Permissions
   waitFor: ['Build-CCP-Image'] # Wait for the build to finish
@@ -26,11 +25,18 @@ steps:
   # This is the Cloud Run Service Agent for your project number (457527257985)
   - '--member=serviceAccount:service-457527257985@serverless-robot-prod.iam.gserviceaccount.com'
   - '--role=roles/artifactregistry.reader'
+
+# 3. --- FIX: Wait 30 seconds for IAM propagation ---
+# This gives the permission from Step #2 time to become active.
+- name: 'ubuntu'
+  id: Wait-for-IAM-Propagation
+  waitFor: ['Grant-Permissions']
+  args: ['sleep', '30']
   
-# 3. Deploy the new container image (will be private by default)
+# 4. Deploy the new container image (will be private by default)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Grant-Permissions'] # Wait for permissions to be set
+  waitFor: ['Wait-for-IAM-Propagation'] # Now waits for the sleep step
   args:
   - 'run'
   - 'deploy'
@@ -42,11 +48,10 @@ steps:
   - 'africa-south1'
   - '--platform'
   - 'managed'
-  # --- FIX: Add debug verbosity to get a clearer error message ---
   - '--verbosity=debug'
   # Removed --allow-unauthenticated, we do this in the next step
 
-# 4. Make the deployed service public (fixes the IAM policy error)
+# 5. Make the deployed service public (fixes the IAM policy error)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   waitFor: ['Deploy-Service'] # Wait for the deploy to finish
