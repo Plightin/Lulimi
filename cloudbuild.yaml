@@ -10,11 +10,27 @@ steps:
   - '.' # Use the root directory as the build context
   - '-f' # Specify the Dockerfile location within the context
   - 'ccp/Dockerfile'
+
+# 2. GRANT PERMISSIONS: Give Cloud Run Service Agent permission to pull from Artifact Registry
+# This fixes the "Image not found" error during deployment.
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Grant-Permissions
+  waitFor: ['Build-CCP-Image'] # Wait for the build to finish
+  args:
+  - 'artifacts'
+  - 'repositories'
+  - 'add-iam-policy-binding'
+  - 'lulimi-repo' # The name of our Artifact Registry repo
+  - '--location=africa-south1'
+  - '--project=$PROJECT_ID'
+  # This is the Cloud Run Service Agent for your project number (457527257985)
+  - '--member=serviceAccount:service-457527257985@serverless-robot-prod.iam.gserviceaccount.com'
+  - '--role=roles/artifactregistry.reader'
   
-# 2. Deploy the new container image (will be private by default)
+# 3. Deploy the new container image (will be private by default)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Build-CCP-Image'] # Explicitly wait for the build
+  waitFor: ['Grant-Permissions'] # Wait for permissions to be set
   args:
   - 'run'
   - 'deploy'
@@ -28,7 +44,7 @@ steps:
   - 'managed'
   # Removed --allow-unauthenticated, we do this in the next step
 
-# 3. Make the deployed service public (fixes the IAM policy error)
+# 4. Make the deployed service public (fixes the IAM policy error)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   waitFor: ['Deploy-Service'] # Wait for the deploy to finish
