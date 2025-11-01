@@ -1,4 +1,4 @@
-Lulimi: The Zambian Language Engine
+Lulimi: The Zambian Language Engine.
 
 Lulimi (Nyanja for "tongue" or "language") is a pioneering Neural Machine Translation (NMT) engine designed to bridge communication gaps between Zambia's four primary local languages—Nyanja (NY), Bemba (BM), Tonga (TO), and Lozi (LO)—and English (EN).
 
@@ -59,5 +59,6 @@ Database: Ensure a Firebase Firestore instance is set up to match the public col
 Frontend: The /frontend/lulimi_ccp_interface.html file can be run directly in any browser for immediate community testing and data collection.
 
 📝 Contribution
+
 
 We welcome contributions from native speakers, linguists, and developers! Please check the docs/ folder for the full plan and submit issues or pull requests.
