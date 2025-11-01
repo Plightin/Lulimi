@@ -26,12 +26,12 @@ steps:
   - '--member=serviceAccount:service-457527257985@serverless-robot-prod.iam.gserviceaccount.com'
   - '--role=roles/artifactregistry.reader'
 
-# 3. --- FIX: Wait 120 seconds for IAM propagation ---
+# 3. --- FIX: Wait 180 seconds for IAM propagation ---
 # This gives the permission from Step #2 time to become active.
 - name: 'ubuntu'
   id: Wait-for-IAM-Propagation
   waitFor: ['Grant-Permissions']
-  args: ['sleep', '120']
+  args: ['sleep', '180']
   
 # 4. Deploy the new container image (will be private by default)
 - name: 'gcr.io/cloud-builders/gcloud'
