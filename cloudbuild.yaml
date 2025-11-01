@@ -10,34 +10,13 @@ steps:
   - '.' # Use the root directory as the build context
   - '-f' # Specify the Dockerfile location within the context
   - 'ccp/Dockerfile'
-
-# 2. --- THE DEFINITIVE FIX ---
-# Grant permission to the CORRECT service account (the Compute Engine SA)
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: Grant-Permissions
-  waitFor: ['Build-CCP-Image'] # Wait for the build to finish
-  args:
-  - 'artifacts'
-  - 'repositories'
-  - 'add-iam-policy-binding'
-  - 'lulimi-repo' # The name of our Artifact Registry repo
-  - '--location=africa-south1'
-  - '--project=$PROJECT_ID'
-  # This is the Compute Engine SA, the same one running the deploy
-  - '--member=serviceAccount:457527257985-compute@developer.gserviceaccount.com'
-  - '--role=roles/artifactregistry.reader'
-
-# 3. Wait 180 seconds for IAM propagation
-# This gives the permission from Step #2 time to become active.
-- name: 'ubuntu'
-  id: Wait-for-IAM-Propagation
-  waitFor: ['Grant-Permissions']
-  args: ['sleep', '180']
   
-# 4. Deploy the new container image (will be private by default)
+# 2. Deploy the new container image (will be private by default)
+# We removed the Grant-Permissions and Wait steps, as the permission
+# is now set permanently in the project.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Wait-for-IAM-Propagation'] # Now waits for the sleep step
+  waitFor: ['Build-CCP-Image'] # Waits for the build to finish
   args:
   - 'run'
   - 'deploy'
@@ -53,7 +32,7 @@ steps:
   # Tell Cloud Run to use the same service account
   - '--service-account=457527257985-compute@developer.gserviceaccount.com'
 
-# 5. Make the deployed service public (fixes the IAM policy error)
+# 3. Make the deployed service public
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   waitFor: ['Deploy-Service'] # Wait for the deploy to finish
