@@ -12,8 +12,8 @@ steps:
   - 'ccp/Dockerfile'
   
 # 2. Deploy the new container image (will be private by default)
-# We removed the Grant-Permissions and Wait steps, as the permission
-# is now set permanently in the project.
+# We removed the Grant-Permissions and Wait steps, as the permissions
+# are now set permanently in the project.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
   waitFor: ['Build-CCP-Image'] # Waits for the build to finish
@@ -50,7 +50,7 @@ steps:
 options:
   logging: CLOUD_LOGGING_ONLY
 
-serviceAccount: 457527257985@cloudbuild.gserviceaccount.com
+serviceAccount: 457527257985-compute@developer.gserviceaccount.com
 
 # List the image to be pushed to Artifact Registry
 images:
