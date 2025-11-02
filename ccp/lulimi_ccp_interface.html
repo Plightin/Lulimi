@@ -155,11 +155,16 @@
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- !! SECURITY FIX !! ---
-        // The hardcoded firebaseConfig object has been removed.
-        // The app will now ONLY use the __firebase_config and __app_id
-        // variables provided securely by the environment.
-        // This resolves the GitHub secret alert.
+        // --- !! CONFIGURATION FIX !! ---
+        // This hardcoded config is used ONLY when the app is running on the live URL.
+        // When running in the Canvas, the secure __firebase_config will be used instead.
+        // You MUST restrict your API key in the Google Cloud Console to your live URL.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // <-- Updated Key
+            authDomain: "lulimi-ccp-project.firebaseapp.com",
+            projectId: "lulimi-ccp-project",
+            storageBucket: "lulimi-ccp-project.appspot.com",
+        };
         
         // --- End of Config ---
 
@@ -172,22 +177,17 @@
         
         async function initializeLulimiApp() {
             try {
-                // Get app ID from global scope (provided by Canvas)
-                if (typeof __app_id === 'undefined') {
-                    console.error("Fatal Error: __app_id is not defined.");
-                    showModal("Configuration Error", "App ID is missing. The app cannot start.");
-                    return;
-                }
-                appId = __app_id;
-
-                // Use global config variables if available (from Canvas environment)
-                if (typeof __firebase_config === 'undefined') {
-                    console.error("Fatal Error: __firebase_config is not defined.");
-                    showModal("Configuration Error", "Firebase config is missing. The app cannot start.");
-                    return;
-                }
+                // Check for secure Canvas environment first
+                const isCanvasEnv = typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined';
                 
-                const config = JSON.parse(__firebase_config);
+                const config = isCanvasEnv 
+                    ? JSON.parse(__firebase_config) 
+                    : firebaseConfig;
+                
+                // Use default-app-id if not in Canvas, as appId is only for public pathing
+                appId = isCanvasEnv 
+                    ? __app_id 
+                    : 'default-app-id'; // Fallback for live deploy
 
                 // *** Check for essential config keys ***
                 if (!config.projectId) {
@@ -202,21 +202,20 @@
                     return; // Stop execution if config is broken
                 }
 
-
                 app = initializeApp(config);
                 db = getFirestore(app);
                 auth = getAuth(app);
                 setLogLevel('Debug'); // Enable detailed Firestore logging
 
                 // Authenticate the user
-                await authUser();
+                await authUser(isCanvasEnv);
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showModal("Initialization Error", "Could not connect to Firebase. Please check the console.");
             }
         }
 
-        async function authUser() {
+        async function authUser(isCanvasEnv) {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     console.log("User is authenticated:", user.uid);
@@ -226,10 +225,11 @@
                 } else {
                     console.log("No user signed in, authenticating...");
                     try {
-                        if (typeof __initial_auth_token !== 'undefined') {
+                        // Use custom token if in Canvas, otherwise fallback to anonymous
+                        if (isCanvasEnv && typeof __initial_auth_token !== 'undefined') {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
-                            // Fallback to anonymous sign-in if no custom token
+                            // This is the fallback for the live deployed app
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
@@ -357,6 +357,8 @@
                     document.getElementById('validate-language-label').innerText = `Suggested Translation (${currentValidationDocData.lang})`;
                     
                     document.getElementById('validation-content').classList.remove('hidden');
+                    // *** SYNTAX ERROR FIX: Removed the stray text block from here ***
+                    document.getElementById('validation-loader').classList.add('hidden');
                 }
             } catch (e) {
                 console.error("Error fetching validation doc: ", e);
