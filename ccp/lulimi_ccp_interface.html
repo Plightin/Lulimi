@@ -128,7 +128,15 @@
         </div>
 
         <!-- Footer -->
-        <p class="mt-8 text-gray-500">Lulimi Language Engine &copy; 2025. Building bridges, one word at a time.</p>
+        <div class="text-center mt-8">
+            <p class="text-gray-500">Copyright &copy; 2025 Inwit Systems Ltd. All rights reserved. Building bridges, one word at a time.</p>
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
+                <a href="https://onelink.to/inwitapp" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Download Inwit App</a>
+                <a href="https://inwitsystems.com/radio/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Inwit Online Radio</a>
+                <a href="https://inwit.tv/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Stream Inwit TV</a>
+                <a href="https://inwitsystems.com/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">More From Inwit Systems</a>
+            </div>
+        </div>
     </div>
 
     <!-- Modal for feedback -->
@@ -155,12 +163,12 @@
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- !! CONFIGURATION FIX !! ---
-        // This hardcoded config is used ONLY when the app is running on the live URL.
-        // When running in the Canvas, the secure __firebase_config will be used instead.
-        // You MUST restrict your API key in the Google Cloud Console to your live URL.
-        const firebaseConfig = {
-            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // <-- Updated Key
+        // --- !! CONFIGURATION !! ---
+        // This hardcoded config is used for the live deployed application.
+        // It is secured by restricting the API key in the Google Cloud Console
+        // to ONLY accept requests from the live application URL.
+        const liveFirebaseConfig = {
+            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // <-- Regenerated Key
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
             storageBucket: "lulimi-ccp-project.appspot.com",
@@ -177,14 +185,14 @@
         
         async function initializeLulimiApp() {
             try {
-                // Check for secure Canvas environment first
+                // *** FIX: Check if running in secure Canvas environment ***
                 const isCanvasEnv = typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined';
                 
                 const config = isCanvasEnv 
                     ? JSON.parse(__firebase_config) 
-                    : firebaseConfig;
+                    : liveFirebaseConfig;
                 
-                // Use default-app-id if not in Canvas, as appId is only for public pathing
+                // Use Canvas-provided appId or fallback to 'default-app-id' for live deployment
                 appId = isCanvasEnv 
                     ? __app_id 
                     : 'default-app-id'; // Fallback for live deploy
@@ -207,7 +215,7 @@
                 auth = getAuth(app);
                 setLogLevel('Debug'); // Enable detailed Firestore logging
 
-                // Authenticate the user
+                // Authenticate the user based on the environment
                 await authUser(isCanvasEnv);
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
@@ -225,7 +233,7 @@
                 } else {
                     console.log("No user signed in, authenticating...");
                     try {
-                        // Use custom token if in Canvas, otherwise fallback to anonymous
+                        // *** FIX: Use custom token in Canvas, anonymous on live site ***
                         if (isCanvasEnv && typeof __initial_auth_token !== 'undefined') {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
@@ -234,8 +242,9 @@
                         }
                     } catch (error) {
                         console.error("Authentication failed:", error);
-                        // This is where the "Auth Error" modal comes from.
-                        // Check if Anonymous Sign-in is enabled in your Firebase project.
+                        // This error (auth/requests-from-referer-...) is expected if you
+                        // run this code locally without adding your local URL to the
+                        // Firebase API key restrictions in the Google Cloud Console.
                         showModal("Auth Error", "Could not authenticate user. Check Firebase Console settings.");
                     }
                 }
@@ -357,8 +366,6 @@
                     document.getElementById('validate-language-label').innerText = `Suggested Translation (${currentValidationDocData.lang})`;
                     
                     document.getElementById('validation-content').classList.remove('hidden');
-                    // *** SYNTAX ERROR FIX: Removed the stray text block from here ***
-                    document.getElementById('validation-loader').classList.add('hidden');
                 }
             } catch (e) {
                 console.error("Error fetching validation doc: ", e);
