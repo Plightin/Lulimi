@@ -172,7 +172,7 @@
         // --- End of Config ---
 
         // Initialize Firebase
-        let app, db, auth, userId;
+        let app, db, auth, userId, appId; // <-- Added appId here
         let currentValidationDocId = null;
         let currentValidationDocData = null;
 
@@ -180,6 +180,9 @@
         
         async function initializeLulimiApp() {
             try {
+                // Get app ID from global scope (provided by Canvas)
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
                 // Use global config variables if available (from Canvas environment)
                 const config = typeof __firebase_config !== 'undefined' 
                     ? JSON.parse(__firebase_config) 
@@ -268,7 +271,7 @@
         // --- Contribution Logic ---
 
         window.submitContribution = async function() {
-            if (!db) {
+            if (!db || !appId) {
                 showModal("Error", "Database not connected.");
                 return;
             }
@@ -283,7 +286,9 @@
             }
 
             try {
-                const docRef = await addDoc(collection(db, "unvalidated_sentences"), {
+                // Use the public collection path
+                const colRef = collection(db, "artifacts", appId, "public", "data", "unvalidated_sentences");
+                const docRef = await addDoc(colRef, {
                     lang: lang,
                     english: english,
                     zambian: zambian,
@@ -305,8 +310,8 @@
         // --- Validation Logic ---
 
         async function loadNextValidation() {
-            if (!db || !userId) {
-                console.warn("DB or User not ready for validation load.");
+            if (!db || !userId || !appId) {
+                console.warn("DB, User, or AppID not ready for validation load.");
                 return;
             }
 
@@ -316,9 +321,12 @@
             cancelCorrection(); // Reset correction state
 
             try {
+                // Use the public collection path
+                const colRef = collection(db, "artifacts", appId, "public", "data", "unvalidated_sentences");
+                
                 // Query for a document that the user has NOT submitted
                 const q = query(
-                    collection(db, "unvalidated_sentences"),
+                    colRef,
                     where("submittedBy", "!=", userId),
                     limit(1)
                 );
@@ -344,16 +352,17 @@
                 }
             } catch (e) {
                 console.error("Error fetching validation doc: ", e);
-                showModal("Validation Error", "Could not load a document to validate.");
+                showModal("Validation Error", "Could not load a document to validate. Check permissions.");
             } finally {
                 document.getElementById('validation-loader').classList.add('hidden');
             }
         }
 
         window.handleValidation = async function(action) {
-            if (!currentValidationDocId || !db) return;
+            if (!currentValidationDocId || !db || !appId) return;
 
-            const docRef = doc(db, "unvalidated_sentences", currentValidationDocId);
+            // Use the public collection path
+            const docRef = doc(db, "artifacts", appId, "public", "data", "unvalidated_sentences", currentValidationDocId);
 
             try {
                 await runTransaction(db, async (transaction) => {
@@ -374,8 +383,8 @@
 
                     // Check for promotion (3 approvals)
                     if (newApprovals >= 3) {
-                        // Promote to validated_sentences
-                        const validatedRef = doc(collection(db, "validated_sentences"));
+                        // Promote to validated_sentences (public path)
+                        const validatedRef = doc(collection(db, "artifacts", appId, "public", "data", "validated_sentences"));
                         transaction.set(validatedRef, {
                             lang: data.lang,
                             english: data.english,
@@ -440,7 +449,7 @@
         }
 
         window.submitCorrection = async function() {
-            if (!currentValidationDocId || !currentValidationDocData || !db) return;
+            if (!currentValidationDocId || !currentValidationDocData || !db || !appId) return;
 
             const correctedText = document.getElementById('validate-zambian-edit').value.trim();
             if (!correctedText || correctedText === currentValidationDocData.zambian) {
@@ -453,8 +462,8 @@
             
             const batch = writeBatch(db);
             
-            // 1. Add to validated_sentences
-            const validatedRef = doc(collection(db, "validated_sentences"));
+            // 1. Add to validated_sentences (public path)
+            const validatedRef = doc(collection(db, "artifacts", appId, "public", "data", "validated_sentences"));
             batch.set(validatedRef, {
                 lang: currentValidationDocData.lang,
                 english: currentValidationDocData.english,
@@ -463,8 +472,8 @@
                 validatedBy: userId // Mark who made the correction
             });
             
-            // 2. Delete from unvalidated_sentences
-            const unvalidatedRef = doc(db, "unvalidated_sentences", currentValidationDocId);
+            // 2. Delete from unvalidated_sentences (public path)
+            const unvalidatedRef = doc(db, "artifacts", appId, "public", "data", "unvalidated_sentences", currentValidationDocId);
             batch.delete(unvalidatedRef);
 
             try {
