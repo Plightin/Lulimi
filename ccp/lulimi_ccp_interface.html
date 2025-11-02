@@ -34,12 +34,23 @@
         <!-- Main Content Area -->
         <div class="w-full max-w-3xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
             
+            <!-- Auth Section -->
+            <div class="p-4 flex justify-end items-center bg-gray-800 border-b border-gray-700 min-h-[68px]">
+                <p id="user-display" class="hidden text-sm text-gray-400 mr-4"></p>
+                <button id="btn-google-signin" onclick="signInWithGoogle()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm">
+                    Validator Sign-In
+                </button>
+                <button id="btn-signout" onclick="signOutUser()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm">
+                    Sign Out
+                </button>
+            </div>
+
             <!-- Tab Navigation -->
             <div class="flex bg-gray-700">
                 <button id="tab-contribute" onclick="switchTab('contribute')" class="flex-1 py-4 px-6 font-semibold text-lg text-white border-b-4 border-indigo-500 hover:bg-gray-600 transition duration-200">
                     Contribute New Data
                 </button>
-                <button id="tab-validate" onclick="switchTab('validate')" class="flex-1 py-4 px-6 font-semibold text-lg text-gray-400 border-b-4 border-transparent hover:bg-gray-600 transition duration-200">
+                <button id="tab-validate" onclick="switchTab('validate')" class="hidden flex-1 py-4 px-6 font-semibold text-lg text-gray-400 border-b-4 border-transparent hover:bg-gray-600 transition duration-200">
                     Validate Submissions
                 </button>
             </div>
@@ -160,13 +171,11 @@
             runTransaction, writeBatch, limit, increment
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
-            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            GoogleAuthProvider, signInWithPopup, signOut
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // --- !! CONFIGURATION !! ---
-        // This hardcoded config is used for the live deployed application.
-        // It is secured by restricting the API key in the Google Cloud Console
-        // to ONLY accept requests from the live application URL.
         const liveFirebaseConfig = {
             apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // <-- Regenerated Key
             authDomain: "lulimi-ccp-project.firebaseapp.com",
@@ -177,7 +186,8 @@
         // --- End of Config ---
 
         // Initialize Firebase
-        let app, db, auth, userId, appId; // <-- Added appId here
+        let app, db, auth, userId, appId;
+        let userRole = "contributor"; // Default role
         let currentValidationDocId = null;
         let currentValidationDocData = null;
 
@@ -185,37 +195,33 @@
         
         async function initializeLulimiApp() {
             try {
-                // *** FIX: Check if running in secure Canvas environment ***
                 const isCanvasEnv = typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined';
                 
                 const config = isCanvasEnv 
                     ? JSON.parse(__firebase_config) 
                     : liveFirebaseConfig;
                 
-                // Use Canvas-provided appId or fallback to 'default-app-id' for live deployment
                 appId = isCanvasEnv 
                     ? __app_id 
                     : 'default-app-id'; // Fallback for live deploy
 
-                // *** Check for essential config keys ***
                 if (!config.projectId) {
                     console.error("FirebaseError: 'projectId' not provided in firebase.initializeApp.");
                     showModal("Configuration Error", "Firebase ProjectID is missing. The app cannot start.");
-                    return; // Stop execution if config is broken
+                    return;
                 }
                 
                 if (!config.apiKey) {
                     console.error("FirebaseError: 'apiKey' not provided in firebase.initializeApp.");
                     showModal("Configuration Error", "Firebase API Key is missing. The app cannot start.");
-                    return; // Stop execution if config is broken
+                    return;
                 }
 
                 app = initializeApp(config);
                 db = getFirestore(app);
                 auth = getAuth(app);
-                setLogLevel('Debug'); // Enable detailed Firestore logging
+                setLogLevel('Debug');
 
-                // Authenticate the user based on the environment
                 await authUser(isCanvasEnv);
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
@@ -226,29 +232,111 @@
         async function authUser(isCanvasEnv) {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
+                    // User is authenticated
                     console.log("User is authenticated:", user.uid);
                     userId = user.uid;
-                    // User is signed in, load validation data
-                    loadNextValidation();
+
+                    if (user.isAnonymous) {
+                        userRole = "contributor";
+                        console.log("User role: contributor (anonymous)");
+                        updateUIAfterAuth(user);
+                        loadNextValidation(); // Load data in background
+                    } else {
+                        // This is a non-anonymous user (e.g., Google Sign-In)
+                        await checkUserRole(user); // Sets global userRole
+                        updateUIAfterAuth(user); // Update UI based on new role
+                        loadNextValidation();
+                    }
+
                 } else {
-                    console.log("No user signed in, authenticating...");
+                    // User is signed out
+                    console.log("No user signed in, authenticating anonymously...");
+                    userRole = "contributor";
+                    updateUIAfterAuth(null); // Update UI for logged-out state
+
                     try {
-                        // *** FIX: Use custom token in Canvas, anonymous on live site ***
                         if (isCanvasEnv && typeof __initial_auth_token !== 'undefined') {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
-                            // This is the fallback for the live deployed app
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
                         console.error("Authentication failed:", error);
-                        // This error (auth/requests-from-referer-...) is expected if you
-                        // run this code locally without adding your local URL to the
-                        // Firebase API key restrictions in the Google Cloud Console.
                         showModal("Auth Error", "Could not authenticate user. Check Firebase Console settings.");
                     }
                 }
             });
+        }
+
+        async function checkUserRole(user) {
+            if (!db || !appId) return;
+            
+            // Path to the user's private document
+            // `artifacts/{appId}/users/{userId}`
+            const userDocRef = doc(db, "artifacts", appId, "users", user.uid);
+            
+            try {
+                const userDoc = await getDoc(userDocRef);
+                if (userDoc.exists() && userDoc.data().role === "validator") {
+                    console.log("User role: validator");
+                    userRole = "validator";
+                } else {
+                    console.log("User role: contributor (signed in)");
+                    userRole = "contributor";
+                    // Optional: Create a user doc if it doesn't exist
+                    if (!userDoc.exists()) {
+                        await setDoc(userDocRef, {
+                            email: user.email,
+                            displayName: user.displayName,
+                            role: "contributor", // Default new signups to contributor
+                            joinedAt: new Date()
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking user role:", error);
+                // This might fail due to security rules if the doc doesn't exist.
+                // We'll try to create it.
+                if (error.code === 'permission-denied' || error.code === 'not-found') {
+                     console.log("No user profile found, creating one.");
+                     try {
+                        await setDoc(userDocRef, {
+                            email: user.email,
+                            displayName: user.displayName,
+                            role: "contributor",
+                            joinedAt: new Date()
+                        });
+                     } catch (e) {
+                         console.error("Failed to create user profile:", e);
+                     }
+                }
+                userRole = "contributor"; // Default to contributor on error
+            }
+        }
+
+        function updateUIAfterAuth(user = null) {
+            if (user && !user.isAnonymous) {
+                // Signed-in (Google) user
+                document.getElementById('btn-google-signin').classList.add('hidden');
+                document.getElementById('btn-signout').classList.remove('hidden');
+                const userDisplay = document.getElementById('user-display');
+                userDisplay.innerText = `Welcome, ${user.displayName || user.email}`;
+                userDisplay.classList.remove('hidden');
+
+                if (userRole === 'validator') {
+                    document.getElementById('tab-validate').classList.remove('hidden');
+                } else {
+                    document.getElementById('tab-validate').classList.add('hidden');
+                }
+            } else {
+                // Anonymous or logged-out user
+                document.getElementById('btn-google-signin').classList.remove('hidden');
+                document.getElementById('btn-signout').classList.add('hidden');
+                document.getElementById('user-display').classList.add('hidden');
+                document.getElementById('tab-validate').classList.add('hidden');
+            }
+            // Reset to contribute tab on auth change
+            switchTab('contribute');
         }
 
         // --- UI Control ---
@@ -264,24 +352,65 @@
         }
 
         window.switchTab = function(tab) {
+            // Force contribute tab if user is not a validator
+            if (tab === 'validate' && userRole !== 'validator') {
+                tab = 'contribute';
+            }
+
             if (tab === 'contribute') {
                 document.getElementById('panel-contribute').classList.remove('hidden');
                 document.getElementById('panel-validate').classList.add('hidden');
                 document.getElementById('tab-contribute').classList.add('text-white', 'border-indigo-500');
                 document.getElementById('tab-contribute').classList.remove('text-gray-400', 'border-transparent');
-                document.getElementById('tab-validate').classList.add('text-gray-400', 'border-transparent');
-                document.getElementById('tab-validate').classList.remove('text-white', 'border-indigo-500');
+                
+                const validateTab = document.getElementById('tab-validate');
+                if (validateTab) {
+                    validateTab.classList.add('text-gray-400', 'border-transparent');
+                    validateTab.classList.remove('text-white', 'border-indigo-500');
+                }
             } else {
                 document.getElementById('panel-contribute').classList.add('hidden');
                 document.getElementById('panel-validate').classList.remove('hidden');
                 document.getElementById('tab-contribute').classList.remove('text-white', 'border-indigo-500');
                 document.getElementById('tab-contribute').classList.add('text-gray-400', 'border-transparent');
+                document.getElementById('tab-validate').classList.add('text-gray-400', 'border-transparent');
                 document.getElementById('tab-validate').classList.remove('text-gray-400', 'border-transparent');
                 document.getElementById('tab-validate').classList.add('text-white', 'border-indigo-500');
-                // Refresh validation card when switching
+                
                 if (!currentValidationDocId) {
                     loadNextValidation();
                 }
+            }
+        }
+
+        // --- Auth Functions ---
+
+        window.signInWithGoogle = async function() {
+            if (!auth) return;
+            const provider = new GoogleAuthProvider();
+            
+            try {
+                const result = await signInWithPopup(auth, provider);
+                // This will trigger the onAuthStateChanged listener, 
+                // which will then call checkUserRole and updateUIAfterAuth.
+                console.log("Google Sign-In successful:", result.user.uid);
+            } catch (error) {
+                console.error("Google Sign-In failed:", error);
+                showModal("Sign-In Error", "Could not sign in with Google. See console.");
+            }
+        }
+
+        window.signOutUser = async function() {
+            if (!auth) return;
+            try {
+                await signOut(auth);
+                // This will trigger onAuthStateChanged, which will
+                // sign the user in anonymously and reset the UI.
+                console.log("User signed out.");
+                userRole = "contributor"; // Reset role
+                // onAuthStateChanged will handle the rest
+            } catch (error) {
+                console.error("Sign-out failed:", error);
             }
         }
 
@@ -331,10 +460,19 @@
                 console.warn("DB, User, or AppID not ready for validation load.");
                 return;
             }
+            
+            // Don't bother loading if the user isn't a validator
+            if (userRole !== 'validator') {
+                document.getElementById('validation-loader').classList.add('hidden');
+                document.getElementById('validation-empty').classList.remove('hidden');
+                document.getElementById('validation-empty').querySelector('p').innerText = "Sign in as a validator to review submissions.";
+                return;
+            }
 
             document.getElementById('validation-loader').classList.remove('hidden');
             document.getElementById('validation-content').classList.add('hidden');
             document.getElementById('validation-empty').classList.add('hidden');
+            document.getElementById('validation-empty').querySelector('p').innerText = "No submissions to validate!"; // Reset text
             cancelCorrection(); // Reset correction state
 
             try {
@@ -514,6 +652,8 @@
         window.suggestCorrection = suggestCorrection;
         window.cancelCorrection = cancelCorrection;
         window.submitCorrection = submitCorrection;
+        window.signInWithGoogle = signInWithGoogle;
+        window.signOutUser = signOutUser;
         
         // Start the application
         initializeLulimiApp();
