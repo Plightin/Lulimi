@@ -1,45 +1,22 @@
 steps:
 # 1. Build the Docker container image and push to ARTIFACT REGISTRY
+# This will now succeed because you permanently granted 'artifactregistry.writer'
 - name: 'gcr.io/cloud-builders/docker'
   id: Build-CCP-Image
   args:
   - 'build'
   - '-t'
-  # This path format is [region]-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/[IMAGE_NAME]
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
-  - '.' # Use the root directory as the build context
-  - '-f' # Specify the Dockerfile location within the context
+  - '.' 
+  - '-f'
   - 'ccp/Dockerfile'
-
-# 2. --- THE PERMANENT FIX ---
-# Grant all three required permissions to the Compute Engine SA that is running this build.
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: Grant-All-Permissions
-  waitFor: ['Build-CCP-Image']
-  entrypoint: 'sh' # Use 'sh' to allow the '&&' operator
-  args:
-  - '-c'
-  - |
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/artifactregistry.writer" && \
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/run.admin" && \
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/iam.serviceAccountUser"
-
-# 3. Wait 180 seconds (3 minutes) for ALL IAM permissions to propagate
-- name: 'ubuntu'
-  id: Wait-for-IAM-Propagation
-  waitFor: ['Grant-All-Permissions']
-  args: ['sleep', '180']
   
-# 4. Deploy the new container image (will be private by default)
+# 2. Deploy the new container image
+# This will now succeed because you permanently granted 'run.admin' 
+# and the image will be found.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Wait-for-IAM-Propagation'] # Now waits for the sleep step
+  waitFor: ['Build-CCP-Image'] # Waits for the build to finish
   args:
   - 'run'
   - 'deploy'
@@ -52,10 +29,10 @@ steps:
   - '--platform'
   - 'managed'
   - '--verbosity=debug'
-  # Tell Cloud Run to use the same service account
+  # This will now succeed because you permanently granted 'iam.serviceAccountUser'
   - '--service-account=457527257985-compute@developer.gserviceaccount.com'
 
-# 5. Make the deployed service public
+# 3. Make the deployed service public
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   waitFor: ['Deploy-Service'] # Wait for the deploy to finish
@@ -69,12 +46,10 @@ steps:
   - '--member=allUsers'
   - '--role=roles/run.invoker'
   
-# Fix for the persistent "logging" error and explicit Service Account
 options:
   logging: CLOUD_LOGGING_ONLY
 
 serviceAccount: 457527257985-compute@developer.gserviceaccount.com
 
-# List the image to be pushed to Artifact Registry
 images:
 - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
