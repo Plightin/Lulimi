@@ -1,456 +1,497 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-gray-900">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lulimi CCP - Contribute & Validate</title>
-    <!-- Load Tailwind CSS -->
+    <title>Lulimi - Community Contribution</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter Font -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f7f7f7;
+        /* Custom styles for loading spinner */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="h-full font-sans antialiased text-gray-200">
+    <div id="app" class="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white mb-2">Lulimi</h1>
+            <p class="text-xl text-indigo-300">Community Contribution Platform</p>
+        </div>
 
-    <div id="app" class="max-w-4xl mx-auto p-4 md:p-8">
-        <header class="text-center py-6 bg-white shadow-md rounded-xl mb-8">
-            <h1 class="text-4xl font-extrabold text-[#3B82F6] tracking-tight">LULIMI CCP</h1>
-            <p class="text-xl text-gray-600 mt-1">Community Contribution Platform</p>
-            <p id="user-status" class="text-sm mt-2 text-gray-500"></p>
-        </header>
-
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <div role="tablist" class="flex border-b border-gray-200 mb-6">
-                <button
-                    class="tab-button flex-1 py-3 px-4 text-center font-medium transition-all duration-200"
-                    data-tab="contribute"
-                    onclick="switchTab('contribute')"
-                >
-                    Contribute Data
-                </button>
-                <button
-                    class="tab-button flex-1 py-3 px-4 text-center font-medium transition-all duration-200"
-                    data-tab="validate"
-                    onclick="switchTab('validate')"
-                >
-                    Validate & Review
-                </button>
-            </div>
-
-            <!-- TAB CONTENT -->
-
-            <!-- 1. Contribute Tab -->
-            <div id="contribute" class="tab-content space-y-4">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Submit New Translation Pair</h2>
-                
-                <p class="text-sm text-gray-600 mb-4">Help us grow Lulimi! Enter a single English sentence and its perfect translation in one of the Zambian languages.</p>
-                
-                <div class="space-y-4 md:flex md:space-y-0 md:space-x-4">
-                    <div class="w-full md:w-1/3">
-                        <label for="contribute-lang" class="block text-sm font-medium text-gray-700">Target Language</label>
-                        <select id="contribute-lang" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#3B82F6] focus:ring-[#3B82F6] p-3 border">
-                            <option value="NY">Nyanja (NY)</option>
-                            <option value="BM">Bemba (BM)</option>
-                            <option value="TO">Tonga (TO)</option>
-                            <option value="LO">Lozi (LO)</option>
-                        </select>
-                    </div>
-                    <div class="w-full md:w-2/3">
-                        <label for="contribute-english" class="block text-sm font-medium text-gray-700">English Sentence</label>
-                        <input type="text" id="contribute-english" placeholder="e.g., The sun is shining today." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#3B82F6] focus:ring-[#3B82F6] p-3 border">
-                    </div>
-                </div>
-
-                <div>
-                    <label for="contribute-zambian" class="block text-sm font-medium text-gray-700">Zambian Translation</label>
-                    <input type="text" id="contribute-zambian" placeholder="e.g., Dzuwa likuwala lero." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#3B82F6] focus:ring-[#3B82F6] p-3 border">
-                </div>
-                
-                <button onclick="submitContribution()" id="submit-contribution-btn" class="w-full py-3 px-4 bg-[#3B82F6] text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition duration-150 ease-in-out disabled:opacity-50">
-                    Submit Contribution
-                </button>
-                <p id="contribution-message" class="text-center text-sm mt-2 hidden"></p>
-            </div>
-
-            <!-- 2. Validate Tab -->
-            <div id="validate" class="tab-content hidden space-y-4">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Review and Validate Data</h2>
-
-                <div id="validation-card" class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                    <div id="no-data-message" class="text-center py-8 hidden">
-                        <p class="text-lg text-gray-600">🎉 **Congratulations!** You've validated everything for now.</p>
-                        <p class="text-sm text-gray-500 mt-2">Come back later, or switch to the **Contribute** tab!</p>
-                    </div>
-
-                    <div id="current-validation" class="space-y-4">
-                        <p class="text-xs text-gray-500 font-medium tracking-wider uppercase mb-2">Sentence to Review (<span id="validation-lang-code">--</span>)</p>
-
-                        <div class="bg-white p-4 rounded-lg border">
-                            <label class="block text-sm font-medium text-gray-500">English (Source)</label>
-                            <p id="val-english-text" class="text-lg font-medium text-gray-800 mt-1"></p>
-                        </div>
-
-                        <div id="zambian-translation-box" class="bg-white p-4 rounded-lg border relative">
-                            <label class="block text-sm font-medium text-gray-500" id="val-zambian-label">Zambian Translation</label>
-                            <p id="val-zambian-text" class="text-lg font-medium text-gray-800 mt-1"></p>
-                            <textarea id="val-zambian-input" rows="3" class="hidden mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3 border text-lg" placeholder="Enter the corrected translation here."></textarea>
-                        </div>
-
-                        <p id="val-status-info" class="text-sm text-gray-600 mt-4">
-                            Status: <span id="val-approval-count" class="font-bold text-blue-600">0</span> / 3 Approvals needed.
-                        </p>
-
-                        <div id="validation-actions" class="flex space-x-3 pt-2">
-                            <button onclick="validateSentence(true)" id="btn-approve" class="flex-1 py-3 px-4 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-150 ease-in-out">
-                                <span id="approve-text">Approve</span>
-                            </button>
-                            <button onclick="validateSentence(false)" id="btn-reject" class="py-3 px-4 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-150 ease-in-out">
-                                Reject
-                            </button>
-                            <button onclick="toggleCorrectionMode()" id="btn-correct" class="py-3 px-4 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-150 ease-in-out">
-                                Suggest Correction
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Main Content Area -->
+        <div class="w-full max-w-3xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
             
-            <p id="error-message" class="text-center text-red-500 text-sm mt-4 hidden">An error occurred.</p>
+            <!-- Tab Navigation -->
+            <div class="flex bg-gray-700">
+                <button id="tab-contribute" onclick="switchTab('contribute')" class="flex-1 py-4 px-6 font-semibold text-lg text-white border-b-4 border-indigo-500 hover:bg-gray-600 transition duration-200">
+                    Contribute New Data
+                </button>
+                <button id="tab-validate" onclick="switchTab('validate')" class="flex-1 py-4 px-6 font-semibold text-lg text-gray-400 border-b-4 border-transparent hover:bg-gray-600 transition duration-200">
+                    Validate Submissions
+                </button>
+            </div>
 
+            <!-- Panels -->
+            <div class="p-8">
+                <!-- Contribution Panel -->
+                <div id="panel-contribute">
+                    <p class="text-gray-300 mb-6 text-lg">
+                        Help train the Lulimi engine by providing a high-quality translation. Your contribution is vital for preserving and digitizing our languages.
+                    </p>
+                    <form id="contribution-form">
+                        <div class="mb-6">
+                            <label for="language-select" class="block text-sm font-medium text-gray-300 mb-2">Select Language</label>
+                            <select id="language-select" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="NY">Nyanja (Chichewa)</option>
+                                <option value="BM">Bemba (ChiBemba)</option>
+                                <option value="TO">Tonga (ChiTonga)</option>
+                                <option value="LO">Lozi (SiLozi)</option>
+                            </select>
+                        </div>
+                        <div class="mb-6">
+                            <label for="english-text" class="block text-sm font-medium text-gray-300 mb-2">English Sentence</label>
+                            <textarea id="english-text" rows="3" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., The quick brown fox jumps over the lazy dog."></textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label for="zambian-text" class="block text-sm font-medium text-gray-300 mb-2">Zambian Language Translation</label>
+                            <textarea id="zambian-text" rows="3" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., Genda bwinobwino..."></textarea>
+                        </div>
+                        <button type="button" onclick="submitContribution()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 shadow-lg">
+                            Submit Contribution
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Validation Panel -->
+                <div id="panel-validate" class="hidden">
+                    <p class="text-gray-300 mb-6 text-lg">
+                        Review submissions from other users. You need 3 approvals to add a sentence to the training data.
+                    </p>
+                    <div id="validation-card" class="bg-gray-700 p-6 rounded-lg shadow-inner">
+                        <div id="validation-loader" class="flex justify-center items-center h-48">
+                            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-500 h-12 w-12"></div>
+                        </div>
+                        <div id="validation-content" class="hidden">
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium text-gray-400 mb-1">English</label>
+                                <p id="validate-english" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
+                            </div>
+                            <div class="mb-6">
+                                <label id="validate-language-label" class="block text-sm font-medium text-gray-400 mb-1">Suggested Translation (Nyanja)</label>
+                                <p id="validate-zambian" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
+                                <!-- Editable text area for corrections -->
+                                <textarea id="validate-zambian-edit" class="hidden w-full text-lg text-white p-3 bg-gray-900 rounded-md border border-indigo-500" rows="3"></textarea>
+                            </div>
+                            
+                            <!-- Standard Validation Buttons -->
+                            <div id="standard-buttons" class="flex space-x-4">
+                                <button onclick="handleValidation('reject')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                                    Reject
+                                </button>
+                                <button onclick="suggestCorrection()" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition duration-200">
+                                    Suggest Correction
+                                </button>
+                                <button onclick="handleValidation('approve')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                                    Approve
+                                </button>
+                            </div>
+                            <!-- Correction Mode Buttons -->
+                            <div id="correction-buttons" class="hidden flex space-x-4">
+                                <button onclick="cancelCorrection()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                                    Cancel
+                                </button>
+                                <button onclick="submitCorrection()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                                    Submit Final Correction
+                                </button>
+                            </div>
+                        </div>
+                        <div id="validation-empty" class="hidden text-center h-48 flex flex-col justify-center items-center">
+                            <p class="text-xl text-gray-400">No submissions to validate!</p>
+                            <p class="text-gray-500">Please check back later or add a new contribution.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="mt-8 text-gray-500">Lulimi Language Engine &copy; 2025. Building bridges, one word at a time.</p>
+    </div>
+
+    <!-- Modal for feedback -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center">
+            <h3 id="modal-title" class="text-2xl font-bold text-white mb-4">Thank You!</h3>
+            <p id="modal-message" class="text-gray-300 text-lg mb-6">Your contribution has been submitted for validation.</p>
+            <button onclick="closeModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
+                Close
+            </button>
         </div>
     </div>
 
-    <!-- Firebase Imports -->
+    <!-- Firebase and App Logic -->
     <script type="module">
+        // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, limit, getDocs, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getFirestore, setLogLevel, doc, getDoc, addDoc, setDoc, updateDoc, 
+            deleteDoc, onSnapshot, collection, query, where, getDocs, 
+            runTransaction, writeBatch, limit, increment
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Global Variables (MUST BE USED)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // --- !! CRITICAL FIX !! ---
+        // Your Firebase configuration object.
+        // You MUST replace "YOUR_PROJECT_ID_HERE" with your actual Firebase Project ID.
+        // Your Project ID is: lulimi-ccp-project
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY_HERE", // Keep your API key
+            authDomain: "YOUR_AUTH_DOMAIN_HERE",
+            // ---> THIS IS THE FIX <---
+            projectId: "lulimi-ccp-project",
+            storageBucket: "YOUR_STORAGE_BUCKET_HERE",
+            messagingSenderId: "YOUR_SENDER_ID_HERE",
+            appId: "YOUR_APP_ID_HERE"
+        };
+        
+        // --- End of Config ---
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        let app, db, auth, userId;
+        let currentValidationDocId = null;
+        let currentValidationDocData = null;
 
-        // Set logging for debugging
-        setLogLevel('Debug');
-
-        // Firestore Path Helpers
-        const UNVALIDATED_COLLECTION_PATH = `/artifacts/${appId}/public/data/unvalidated_sentences`;
-        const VALIDATED_COLLECTION_PATH = `/artifacts/${appId}/public/data/validated_sentences`;
-
-        // Local State
-        let currentUserId = null;
-        let currentReviewDoc = null; // Holds the Firestore document snapshot for the current review item
-        let isCorrectionMode = false;
-        const requiredApprovals = 3;
-
-        // --- AUTHENTICATION & INITIALIZATION ---
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                document.getElementById('user-status').textContent = `Logged in as: Contributor ${currentUserId.substring(0, 8)}...`;
-            } else {
-                currentUserId = crypto.randomUUID(); // Fallback for unauthenticated scenarios
-                document.getElementById('user-status').textContent = `Logged in anonymously.`;
-            }
-
-            // After auth is ready, load the default tab (Contribute) and start loading validation data
-            switchTab('contribute');
-            if (document.getElementById('validate').classList.contains('active-tab')) {
-                await fetchSentenceForValidation();
-            }
-        });
-
-        async function initializeAuth() {
+        // --- App Initialization ---
+        
+        async function initializeLulimiApp() {
             try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
+                // Use global config variables if available (from Canvas environment)
+                const config = typeof __firebase_config !== 'undefined' 
+                    ? JSON.parse(__firebase_config) 
+                    : firebaseConfig;
+
+                // *** THIS IS THE FIX: Ensure projectId is present ***
+                if (!config.projectId || config.projectId === "YOUR_PROJECT_ID_HERE") {
+                    // Check if __firebase_config is also unconfigured
+                    if (typeof __firebase_config === 'undefined' || !JSON.parse(__firebase_config).projectId) {
+                        console.error("FirebaseError: 'projectId' not provided in firebase.initializeApp.");
+                        showModal("Configuration Error", "Firebase ProjectID is missing. The app cannot start.");
+                        return; // Stop execution if config is broken
+                    }
                 }
+
+                app = initializeApp(config);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug'); // Enable detailed Firestore logging
+
+                // Authenticate the user
+                await authUser();
             } catch (error) {
-                console.error("Firebase Auth Error:", error);
+                console.error("Error initializing Firebase:", error);
+                showModal("Initialization Error", "Could not connect to Firebase. Please check the console.");
             }
         }
 
-        // --- TAB SWITCHING LOGIC ---
-
-        window.switchTab = (tabName) => {
-            const tabs = ['contribute', 'validate'];
-            tabs.forEach(tab => {
-                const content = document.getElementById(tab);
-                const button = document.querySelector(`.tab-button[data-tab="${tab}"]`);
-                if (tab === tabName) {
-                    content.classList.remove('hidden');
-                    button.classList.add('active-tab', 'border-b-4', 'border-[#3B82F6]', 'text-[#3B82F6]');
-                    button.classList.remove('text-gray-500');
-                    if (tabName === 'validate') {
-                        fetchSentenceForValidation();
-                    }
+        async function authUser() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    console.log("User is authenticated:", user.uid);
+                    userId = user.uid;
+                    // User is signed in, load validation data
+                    loadNextValidation();
                 } else {
-                    content.classList.add('hidden');
-                    button.classList.remove('active-tab', 'border-b-4', 'border-[#3B82F6]', 'text-[#3B82F6]');
-                    button.classList.add('text-gray-500');
+                    console.log("No user signed in, authenticating...");
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined') {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Anonymous sign-in failed:", error);
+                        showModal("Auth Error", "Could not authenticate user.");
+                    }
                 }
             });
-        };
+        }
 
-        // --- CONTRIBUTION LOGIC ---
+        // --- UI Control ---
 
-        window.submitContribution = async () => {
-            const englishText = document.getElementById('contribute-english').value.trim();
-            const zambianText = document.getElementById('contribute-zambian').value.trim();
-            const targetLang = document.getElementById('contribute-lang').value;
-            const messageElement = document.getElementById('contribution-message');
+        function showModal(title, message) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal').classList.remove('hidden');
+        }
 
-            messageElement.classList.add('hidden');
-            messageElement.classList.remove('text-green-500', 'text-red-500');
+        window.closeModal = function() {
+            document.getElementById('modal').classList.add('hidden');
+        }
 
-            if (!englishText || !zambianText) {
-                messageElement.textContent = "Please fill in both the English and Zambian translation fields.";
-                messageElement.classList.remove('hidden');
-                messageElement.classList.add('text-red-500');
+        window.switchTab = function(tab) {
+            if (tab === 'contribute') {
+                document.getElementById('panel-contribute').classList.remove('hidden');
+                document.getElementById('panel-validate').classList.add('hidden');
+                document.getElementById('tab-contribute').classList.add('text-white', 'border-indigo-500');
+                document.getElementById('tab-contribute').classList.remove('text-gray-400', 'border-transparent');
+                document.getElementById('tab-validate').classList.add('text-gray-400', 'border-transparent');
+                document.getElementById('tab-validate').classList.remove('text-white', 'border-indigo-500');
+            } else {
+                document.getElementById('panel-contribute').classList.add('hidden');
+                document.getElementById('panel-validate').classList.remove('hidden');
+                document.getElementById('tab-contribute').classList.remove('text-white', 'border-indigo-500');
+                document.getElementById('tab-contribute').classList.add('text-gray-400', 'border-transparent');
+                document.getElementById('tab-validate').classList.remove('text-gray-400', 'border-transparent');
+                document.getElementById('tab-validate').classList.add('text-white', 'border-indigo-500');
+                // Refresh validation card when switching
+                if (!currentValidationDocId) {
+                    loadNextValidation();
+                }
+            }
+        }
+
+        // --- Contribution Logic ---
+
+        window.submitContribution = async function() {
+            if (!db) {
+                showModal("Error", "Database not connected.");
+                return;
+            }
+
+            const lang = document.getElementById('language-select').value;
+            const english = document.getElementById('english-text').value.trim();
+            const zambian = document.getElementById('zambian-text').value.trim();
+
+            if (!english || !zambian) {
+                showModal("Error", "Please fill in both sentences.");
                 return;
             }
 
             try {
-                const newDocRef = collection(db, UNVALIDATED_COLLECTION_PATH);
-                await addDoc(newDocRef, {
-                    english: englishText,
-                    zambian: zambianText,
-                    language: targetLang,
-                    status: 'pending',
+                const docRef = await addDoc(collection(db, "unvalidated_sentences"), {
+                    lang: lang,
+                    english: english,
+                    zambian: zambian,
                     approvals: 0,
                     rejections: 0,
-                    approved_by: [],
-                    rejected_by: [],
-                    contributor_id: currentUserId,
-                    created_at: serverTimestamp()
+                    submittedBy: userId,
+                    submittedAt: new Date()
                 });
-
-                document.getElementById('contribute-english').value = '';
-                document.getElementById('contribute-zambian').value = '';
-                messageElement.textContent = "Thank you! Your contribution has been submitted for validation.";
-                messageElement.classList.remove('hidden');
-                messageElement.classList.add('text-green-500');
-
+                console.log("Document written with ID: ", docRef.id);
+                showModal("Thank You!", "Your contribution has been submitted for validation.");
+                // Clear the form
+                document.getElementById('contribution-form').reset();
             } catch (e) {
                 console.error("Error adding document: ", e);
-                messageElement.textContent = "Submission failed. Please try again.";
-                messageElement.classList.remove('hidden');
-                messageElement.classList.add('text-red-500');
+                showModal("Submission Error", "Could not submit your contribution. See console for details.");
             }
-        };
+        }
 
-        // --- VALIDATION & CORRECTION LOGIC ---
+        // --- Validation Logic ---
 
-        window.fetchSentenceForValidation = async () => {
-            document.getElementById('current-validation').classList.add('hidden');
-            document.getElementById('no-data-message').classList.add('hidden');
-            currentReviewDoc = null;
+        async function loadNextValidation() {
+            if (!db || !userId) {
+                console.warn("DB or User not ready for validation load.");
+                return;
+            }
 
-            // Simple query to fetch one document that the current user hasn't approved or rejected
+            document.getElementById('validation-loader').classList.remove('hidden');
+            document.getElementById('validation-content').classList.add('hidden');
+            document.getElementById('validation-empty').classList.add('hidden');
+            cancelCorrection(); // Reset correction state
+
             try {
+                // Query for a document that the user has NOT submitted
                 const q = query(
-                    collection(db, UNVALIDATED_COLLECTION_PATH),
-                    where('approved_by', 'not-array-contains', currentUserId),
-                    where('rejected_by', 'not-array-contains', currentUserId),
+                    collection(db, "unvalidated_sentences"),
+                    where("submittedBy", "!=", userId),
                     limit(1)
                 );
 
-                const snapshot = await getDocs(q);
+                const querySnapshot = await getDocs(q);
 
-                if (snapshot.empty) {
-                    document.getElementById('no-data-message').classList.remove('hidden');
-                    return;
+                if (querySnapshot.empty) {
+                    console.log("No documents to validate.");
+                    document.getElementById('validation-empty').classList.remove('hidden');
+                    currentValidationDocId = null;
+                    currentValidationDocData = null;
+                } else {
+                    const doc = querySnapshot.docs[0];
+                    currentValidationDocId = doc.id;
+                    currentValidationDocData = doc.data();
+
+                    // Display the data
+                    document.getElementById('validate-english').innerText = currentValidationDocData.english;
+                    document.getElementById('validate-zambian').innerText = currentValidationDocData.zambian;
+                    document.getElementById('validate-language-label').innerText = `Suggested Translation (${currentValidationDocData.lang})`;
+                    
+                    document.getElementById('validation-content').classList.remove('hidden');
                 }
-
-                currentReviewDoc = snapshot.docs[0];
-                const data = currentReviewDoc.data();
-
-                // Reset correction mode
-                setCorrectionMode(false);
-
-                // Populate UI
-                document.getElementById('val-english-text').textContent = data.english;
-                document.getElementById('val-zambian-text').textContent = data.zambian;
-                document.getElementById('val-zambian-input').value = data.zambian; // Initialize correction box
-                document.getElementById('validation-lang-code').textContent = data.language;
-                document.getElementById('val-approval-count').textContent = data.approvals || 0;
-                document.getElementById('current-validation').classList.remove('hidden');
-
             } catch (e) {
-                console.error("Error fetching sentence:", e);
-                document.getElementById('error-message').textContent = `Failed to load review data: ${e.message}`;
-                document.getElementById('error-message').classList.remove('hidden');
+                console.error("Error fetching validation doc: ", e);
+                showModal("Validation Error", "Could not load a document to validate.");
+            } finally {
+                document.getElementById('validation-loader').classList.add('hidden');
             }
-        };
+        }
 
-        window.validateSentence = async (isApproved) => {
-            if (!currentReviewDoc) return;
+        window.handleValidation = async function(action) {
+            if (!currentValidationDocId || !db) return;
 
-            const docRef = currentReviewDoc.ref;
-            const docId = currentReviewDoc.id;
+            const docRef = doc(db, "unvalidated_sentences", currentValidationDocId);
 
             try {
                 await runTransaction(db, async (transaction) => {
-                    const freshDoc = await transaction.get(docRef);
-                    if (!freshDoc.exists()) {
+                    const sfDoc = await transaction.get(docRef);
+                    if (!sfDoc.exists()) {
                         throw "Document does not exist!";
                     }
 
-                    const data = freshDoc.data();
-                    let updatedData = { ...data };
+                    const data = sfDoc.data();
+                    let newApprovals = data.approvals;
+                    let newRejections = data.rejections;
 
-                    if (isApproved) {
-                        // Approval Logic
-                        if (!data.approved_by.includes(currentUserId)) {
-                            updatedData.approvals = (data.approvals || 0) + 1;
-                            updatedData.approved_by = [...data.approved_by, currentUserId];
-                        }
-                    } else {
-                        // Rejection Logic
-                        if (!data.rejected_by.includes(currentUserId)) {
-                            updatedData.rejections = (data.rejections || 0) + 1;
-                            updatedData.rejected_by = [...data.rejected_by, currentUserId];
-                        }
+                    if (action === 'approve') {
+                        newApprovals = (newApprovals || 0) + 1;
+                    } else if (action === 'reject') {
+                        newRejections = (newRejections || 0) + 1;
                     }
 
-                    // Check for promotion to Gold Standard
-                    if (updatedData.approvals >= requiredApprovals) {
-                        // Promote to validated collection and delete from unvalidated
-                        const validatedDocRef = doc(db, VALIDATED_COLLECTION_PATH, docId);
-                        transaction.set(validatedDocRef, {
-                            english: updatedData.english,
-                            zambian: updatedData.zambian,
-                            language: updatedData.language,
-                            contributor_id: updatedData.contributor_id,
-                            validated_by: updatedData.approved_by,
-                            finalized_at: serverTimestamp()
+                    // Check for promotion (3 approvals)
+                    if (newApprovals >= 3) {
+                        // Promote to validated_sentences
+                        const validatedRef = doc(collection(db, "validated_sentences"));
+                        transaction.set(validatedRef, {
+                            lang: data.lang,
+                            english: data.english,
+                            zambian: data.zambian,
+                            validatedAt: new Date(),
+                            validatedBy: "community_approval"
                         });
+                        // Delete from unvalidated
                         transaction.delete(docRef);
-                        console.log(`Sentence ${docId} promoted to Gold Standard.`);
-                    } else {
-                        // Update the current unvalidated document
-                        transaction.update(docRef, updatedData);
+                        console.log("Promoted document to validated:", currentValidationDocId);
+                    } 
+                    // Check for demotion (3 rejections)
+                    else if (newRejections >= 3) {
+                        // Delete from unvalidated
+                        transaction.delete(docRef);
+                        console.log("Rejected and deleted document:", currentValidationDocId);
+                    } 
+                    // Otherwise, just update the counters
+                    else {
+                        transaction.update(docRef, { 
+                            approvals: newApprovals,
+                            rejections: newRejections
+                        });
                     }
                 });
 
-                await fetchSentenceForValidation(); // Load the next sentence
-
+                console.log(`Transaction successfully committed for action: ${action}`);
+                showModal("Success", `Submission has been ${action}d.`);
             } catch (e) {
-                console.error("Validation Transaction failed:", e);
-                document.getElementById('error-message').textContent = `Validation failed: ${e.message}`;
-                document.getElementById('error-message').classList.remove('hidden');
+                console.error("Transaction failed: ", e);
+                showModal("Error", "Validation action failed. See console.");
             }
-        };
 
-        window.toggleCorrectionMode = () => {
-            isCorrectionMode = !isCorrectionMode;
-            setCorrectionMode(isCorrectionMode);
+            // Load the next document
+            loadNextValidation();
+        }
+        
+        // --- Correction Logic ---
 
-            if (isCorrectionMode) {
-                // Change Approve button to Finalize Correction
-                document.getElementById('approve-text').textContent = 'Finalize Correction';
-                document.getElementById('btn-reject').disabled = true;
-                document.getElementById('btn-correct').textContent = 'Cancel Correction';
-            } else {
-                // Revert to standard Validation mode
-                document.getElementById('approve-text').textContent = 'Approve';
-                document.getElementById('btn-reject').disabled = false;
-                document.getElementById('btn-correct').textContent = 'Suggest Correction';
-            }
-        };
+        window.suggestCorrection = function() {
+            if (!currentValidationDocData) return;
+            
+            // Show edit area, hide text
+            document.getElementById('validate-zambian').classList.add('hidden');
+            const editArea = document.getElementById('validate-zambian-edit');
+            editArea.value = currentValidationDocData.zambian; // Pre-fill with current text
+            editArea.classList.remove('hidden');
+            
+            // Swap button visibility
+            document.getElementById('standard-buttons').classList.add('hidden');
+            document.getElementById('correction-buttons').classList.remove('hidden');
+        }
 
-        const setCorrectionMode = (enabled) => {
-            const zambianTextElement = document.getElementById('val-zambian-text');
-            const zambianInputElement = document.getElementById('val-zambian-input');
+        window.cancelCorrection = function() {
+            // Hide edit area, show text
+            document.getElementById('validate-zambian').classList.remove('hidden');
+            document.getElementById('validate-zambian-edit').classList.add('hidden');
+            
+            // Swap button visibility
+            document.getElementById('standard-buttons').classList.remove('hidden');
+            document.getElementById('correction-buttons').classList.add('hidden');
+        }
 
-            if (enabled) {
-                zambianTextElement.classList.add('hidden');
-                zambianInputElement.classList.remove('hidden');
-                document.getElementById('val-zambian-label').textContent = 'Zambian Translation (Edit)';
-            } else {
-                zambianTextElement.classList.remove('hidden');
-                zambianInputElement.classList.add('hidden');
-                document.getElementById('val-zambian-label').textContent = 'Zambian Translation';
-            }
-            isCorrectionMode = enabled;
-        };
+        window.submitCorrection = async function() {
+            if (!currentValidationDocId || !currentValidationDocData || !db) return;
 
-
-        window.finalizeCorrection = async () => {
-            if (!currentReviewDoc || !isCorrectionMode) return;
-
-            const docRef = currentReviewDoc.ref;
-            const docId = currentReviewDoc.id;
-            const correctedZambian = document.getElementById('val-zambian-input').value.trim();
-
-            if (!correctedZambian) {
-                alert("Correction cannot be empty.");
+            const correctedText = document.getElementById('validate-zambian-edit').value.trim();
+            if (!correctedText || correctedText === currentValidationDocData.zambian) {
+                showModal("Error", "Please make a change or cancel.");
                 return;
             }
 
+            // A correction is considered a final, "gold standard" approval.
+            // We will move it directly to the validated collection.
+            
+            const batch = writeBatch(db);
+            
+            // 1. Add to validated_sentences
+            const validatedRef = doc(collection(db, "validated_sentences"));
+            batch.set(validatedRef, {
+                lang: currentValidationDocData.lang,
+                english: currentValidationDocData.english,
+                zambian: correctedText, // Use the new corrected text
+                validatedAt: new Date(),
+                validatedBy: userId // Mark who made the correction
+            });
+            
+            // 2. Delete from unvalidated_sentences
+            const unvalidatedRef = doc(db, "unvalidated_sentences", currentValidationDocId);
+            batch.delete(unvalidatedRef);
+
             try {
-                await runTransaction(db, async (transaction) => {
-                    const freshDoc = await transaction.get(docRef);
-                    if (!freshDoc.exists()) {
-                        throw "Document does not exist!";
-                    }
-
-                    const data = freshDoc.data();
-
-                    // 1. Promote to validated collection immediately
-                    const validatedDocRef = doc(db, VALIDATED_COLLECTION_PATH, docId);
-                    transaction.set(validatedDocRef, {
-                        english: data.english,
-                        zambian: correctedZambian, // Use the corrected text
-                        language: data.language,
-                        contributor_id: data.contributor_id,
-                        validated_by: [currentUserId], // Finalized by the corrector
-                        corrected: true,
-                        finalized_at: serverTimestamp()
-                    });
-
-                    // 2. Delete from unvalidated queue
-                    transaction.delete(docRef);
-                    console.log(`Sentence ${docId} finalized by correction and promoted.`);
-                });
-
-                await fetchSentenceForValidation(); // Load the next sentence
-
+                await batch.commit();
+                showModal("Success", "Your correction has been submitted and finalized.");
+                console.log("Correction submitted and finalized:", currentValidationDocId);
+                loadNextValidation(); // Load next doc
             } catch (e) {
-                console.error("Correction Finalization failed:", e);
-                document.getElementById('error-message').textContent = `Finalization failed: ${e.message}`;
-                document.getElementById('error-message').classList.remove('hidden');
+                console.error("Error submitting correction: ", e);
+                showModal("Error", "Could not submit correction. See console.");
             }
-        };
+        }
 
-        // --- Event Listeners and Setup ---
+
+        // --- Global Init ---
+        // Expose functions to global scope to be accessible by onclick attributes
+        // This is necessary because we are in a module
+        window.submitContribution = submitContribution;
+        window.switchTab = switchTab;
+        window.handleValidation = handleValidation;
+        window.suggestCorrection = suggestCorrection;
+        window.cancelCorrection = cancelCorrection;
+        window.submitCorrection = submitCorrection;
         
-        // This helper function toggles between standard validation and correction logic
-        document.getElementById('btn-approve').addEventListener('click', () => {
-            if (isCorrectionMode) {
-                finalizeCorrection();
-            } else {
-                validateSentence(true);
-            }
-        });
+        // Start the application
+        initializeLulimiApp();
 
-        // Start the auth process
-        initializeAuth();
     </script>
 </body>
 </html>
