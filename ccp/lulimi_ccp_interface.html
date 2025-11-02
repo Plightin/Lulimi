@@ -157,16 +157,15 @@
 
         // --- !! CRITICAL FIX !! ---
         // Your Firebase configuration object.
-        // You MUST replace "YOUR_PROJECT_ID_HERE" with your actual Firebase Project ID.
-        // Your Project ID is: lulimi-ccp-project
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY_HERE", // Keep your API key
-            authDomain: "YOUR_AUTH_DOMAIN_HERE",
-            // ---> THIS IS THE FIX <---
+            apiKey: "AIzaSyDYzB286pvFDhWOD_yCCe2cbtlz9y2BhIc",
+            authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
-            storageBucket: "YOUR_STORAGE_BUCKET_HERE",
-            messagingSenderId: "YOUR_SENDER_ID_HERE",
-            appId: "YOUR_APP_ID_HERE"
+            storageBucket: "lulimi-ccp-project.appspot.com",
+            // messagingSenderId and appId are often optional, 
+            // but you can add them here if you get them from the Firebase console.
+            // messagingSenderId: "YOUR_SENDER_ID_HERE",
+            // appId: "YOUR_APP_ID_HERE"
         };
         
         // --- End of Config ---
@@ -197,6 +196,16 @@
                         return; // Stop execution if config is broken
                     }
                 }
+                
+                // *** ALSO CHECK API KEY ***
+                if (!config.apiKey || config.apiKey === "YOUR_API_KEY_HERE") {
+                     if (typeof __firebase_config === 'undefined' || !JSON.parse(__firebase_config).apiKey) {
+                        console.error("FirebaseError: 'apiKey' not provided in firebase.initializeApp.");
+                        showModal("Configuration Error", "Firebase API Key is missing. The app cannot start.");
+                        return; // Stop execution if config is broken
+                    }
+                }
+
 
                 app = initializeApp(config);
                 db = getFirestore(app);
