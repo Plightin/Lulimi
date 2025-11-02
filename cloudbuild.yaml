@@ -1,6 +1,5 @@
 steps:
-# 1. Build the Docker container image and push to ARTIFACT REGISTRY
-# This step will FAIL to push, but the image is built.
+# 1. Build the Docker container image (DO NOT PUSH YET)
 - name: 'gcr.io/cloud-builders/docker'
   id: Build-CCP-Image
   args:
@@ -11,13 +10,11 @@ steps:
   - '-f'
   - 'ccp/Dockerfile'
 
-# 2. --- THE PERMANENT FIX ---
-# Grant all three required permissions to the Compute Engine SA that is running this build.
-# This will now SUCCEED because you ran the one-time command to grant 'projectIamAdmin'.
+# 2. Grant all three required permissions
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Grant-All-Permissions
   waitFor: ['Build-CCP-Image']
-  entrypoint: 'sh' # Use 'sh' to allow the '&&' operator
+  entrypoint: 'sh'
   args:
   - '-c'
   - |
@@ -37,13 +34,19 @@ steps:
   waitFor: ['Grant-All-Permissions']
   args: ['sleep', '180']
   
-# 4. Deploy the new container image
-# This step will now SUCCEED because the 'artifactregistry.writer' permission
-# from Step 2 allows the build to push the image just-in-time for deployment.
-# It will also find the image because the IAM delay is over.
+# 4. --- NEW STEP ---
+# NOW that permissions are active, PUSH the image
+- name: 'gcr.io/cloud-builders/docker'
+  id: Push-Image
+  waitFor: ['Wait-for-IAM-Propagation']
+  args:
+  - 'push'
+  - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
+
+# 5. Deploy the new container image (it will now be found)
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Wait-for-IAM-Propagation']
+  waitFor: ['Push-Image'] # Wait for the push to complete
   args:
   - 'run'
   - 'deploy'
@@ -58,7 +61,7 @@ steps:
   - '--verbosity=debug'
   - '--service-account=457527257985-compute@developer.gserviceaccount.com'
 
-# 5. Make the deployed service public
+# 6. Make the deployed service public
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   waitFor: ['Deploy-Service']
@@ -76,7 +79,4 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 serviceAccount: 457527257985-compute@developer.gserviceaccount.com
-
-# List the image to be pushed to Artifact Registry
-images:
-- 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
+# We no longer use the implicit 'images' tag, as we have an explicit 'Push-Image' step
