@@ -155,18 +155,11 @@
             getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- !! CRITICAL FIX !! ---
-        // Your Firebase configuration object.
-        const firebaseConfig = {
-            apiKey: "AIzaSyDYzB286pvFDhWOD_yCCe2cbtlz9y2BhIc",
-            authDomain: "lulimi-ccp-project.firebaseapp.com",
-            projectId: "lulimi-ccp-project",
-            storageBucket: "lulimi-ccp-project.appspot.com",
-            // messagingSenderId and appId are often optional, 
-            // but you can add them here if you get them from the Firebase console.
-            // messagingSenderId: "YOUR_SENDER_ID_HERE",
-            // appId: "YOUR_APP_ID_HERE"
-        };
+        // --- !! SECURITY FIX !! ---
+        // The hardcoded firebaseConfig object has been removed.
+        // The app will now ONLY use the __firebase_config and __app_id
+        // variables provided securely by the environment.
+        // This resolves the GitHub secret alert.
         
         // --- End of Config ---
 
@@ -180,30 +173,33 @@
         async function initializeLulimiApp() {
             try {
                 // Get app ID from global scope (provided by Canvas)
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                if (typeof __app_id === 'undefined') {
+                    console.error("Fatal Error: __app_id is not defined.");
+                    showModal("Configuration Error", "App ID is missing. The app cannot start.");
+                    return;
+                }
+                appId = __app_id;
 
                 // Use global config variables if available (from Canvas environment)
-                const config = typeof __firebase_config !== 'undefined' 
-                    ? JSON.parse(__firebase_config) 
-                    : firebaseConfig;
-
-                // *** THIS IS THE FIX: Ensure projectId is present ***
-                if (!config.projectId || config.projectId === "YOUR_PROJECT_ID_HERE") {
-                    // Check if __firebase_config is also unconfigured
-                    if (typeof __firebase_config === 'undefined' || !JSON.parse(__firebase_config).projectId) {
-                        console.error("FirebaseError: 'projectId' not provided in firebase.initializeApp.");
-                        showModal("Configuration Error", "Firebase ProjectID is missing. The app cannot start.");
-                        return; // Stop execution if config is broken
-                    }
+                if (typeof __firebase_config === 'undefined') {
+                    console.error("Fatal Error: __firebase_config is not defined.");
+                    showModal("Configuration Error", "Firebase config is missing. The app cannot start.");
+                    return;
                 }
                 
-                // *** ALSO CHECK API KEY ***
-                if (!config.apiKey || config.apiKey === "YOUR_API_KEY_HERE") {
-                     if (typeof __firebase_config === 'undefined' || !JSON.parse(__firebase_config).apiKey) {
-                        console.error("FirebaseError: 'apiKey' not provided in firebase.initializeApp.");
-                        showModal("Configuration Error", "Firebase API Key is missing. The app cannot start.");
-                        return; // Stop execution if config is broken
-                    }
+                const config = JSON.parse(__firebase_config);
+
+                // *** Check for essential config keys ***
+                if (!config.projectId) {
+                    console.error("FirebaseError: 'projectId' not provided in firebase.initializeApp.");
+                    showModal("Configuration Error", "Firebase ProjectID is missing. The app cannot start.");
+                    return; // Stop execution if config is broken
+                }
+                
+                if (!config.apiKey) {
+                    console.error("FirebaseError: 'apiKey' not provided in firebase.initializeApp.");
+                    showModal("Configuration Error", "Firebase API Key is missing. The app cannot start.");
+                    return; // Stop execution if config is broken
                 }
 
 
@@ -233,11 +229,14 @@
                         if (typeof __initial_auth_token !== 'undefined') {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else {
+                            // Fallback to anonymous sign-in if no custom token
                             await signInAnonymously(auth);
                         }
                     } catch (error) {
-                        console.error("Anonymous sign-in failed:", error);
-                        showModal("Auth Error", "Could not authenticate user.");
+                        console.error("Authentication failed:", error);
+                        // This is where the "Auth Error" modal comes from.
+                        // Check if Anonymous Sign-in is enabled in your Firebase project.
+                        showModal("Auth Error", "Could not authenticate user. Check Firebase Console settings.");
                     }
                 }
             });
