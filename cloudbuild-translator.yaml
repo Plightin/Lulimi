@@ -1,54 +1,48 @@
-# This pipeline deploys the NEW Lulimi Translator app.
-# It re-uses all the permissions and logic from our successful CCP deployment.
-
 steps:
-# 1. Build the new translator image
+# 1. Build the Docker container image for the Translator
 - name: 'gcr.io/cloud-builders/docker'
   id: Build-Translator-Image
   args:
   - 'build'
   - '-t'
-  # Note: Pushing to a new image name: 'lulimi-translator'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-translator:$COMMIT_SHA'
-  - '.' # Build context is the root
-  - '-f' # Specify the new Dockerfile
+  - '.' # Build context is root
+  - '-f' # Specify Dockerfile
   - 'translator/Dockerfile'
 
-# 2. Grant all necessary permissions (this is our proven, robust fix)
+# 2. Grant all necessary permissions to the build service account
+# This step gives the account permission to write to Artifact Registry, deploy to Cloud Run,
+# and act as the Cloud Run service identity.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Grant-All-Permissions
-  entrypoint: 'bash'
+  entrypoint: 'sh'
   args:
   - '-c'
   - |
-    # Grant Artifact Registry Writer (to push)
     gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.writer"
-    # Grant Cloud Run Admin (to deploy)
     gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/run.admin"
-    # Grant Service Account User (to set identity)
     gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
-    echo "All 3 permissions granted."
 
-# 3. Wait 3 minutes for IAM permissions to propagate (our proven fix)
+# 3. Wait for IAM permissions to propagate
 - name: 'ubuntu'
   id: Wait-for-IAM-Propagation
-  args: ['sleep', '180']
+  args: ['sleep', '180'] # 3 minute wait
 
-# 4. Explicitly Push the image (this was a key fix)
+# 4. Push the image to Artifact Registry
+# This step now runs *after* the 'artifactregistry.writer' role is granted.
 - name: 'gcr.io/cloud-builders/docker'
   id: Push-Image
   args:
   - 'push'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-translator:$COMMIT_SHA'
 
-# 5. Deploy the new service
+# 5. Deploy the new container to Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
   args:
   - 'run'
   - 'deploy'
-  # Note: New service name 'lulimi-translator'
-  - 'lulimi-translator'
+  - 'lulimi-translator' # Deploy the 'translator' service
   - '--image'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-translator:$COMMIT_SHA'
   - '--region'
@@ -59,33 +53,30 @@ steps:
   - 'lulimi-ccp-project'
   - '--service-account'
   - '457527257985-compute@developer.gserviceaccount.com'
-  - '--verbosity'
-  - 'debug'
+  - '--verbosity=debug' # Add debug logging
 
-# 6. Make the new service public
+# 6. Make the new Cloud Run service public
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
   args:
   - 'run'
   - 'services'
   - 'add-iam-policy-binding'
-  - 'lulimi-translator' # The new service name
-  - '--region'
-  - 'africa-south1'
-  - '--platform'
-  - 'managed'
-  - '--project'
-  - 'lulimi-ccp-project'
+  - 'lulimi-translator' # Make the 'translator' service public
+  - '--region=africa-south1'
+  - '--platform=managed'
+  - '--project=lulimi-ccp-project'
   - '--member=allUsers'
   - '--role=roles/run.invoker'
 
-# Tell Cloud Build the final image name
-images:
-- 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-translator:$COMMIT_SHA'
+# --- Build Trigger Configuration ---
+# This tells Cloud Build to ONLY run this pipeline if files
+# in the 'translator/' directory are changed.
+triggerConfig:
+  includedFiles:
+  - 'translator/**'
 
-# Set the logging fix
+# Define the service account and logging options
+serviceAccount: 457527257985-compute@developer.gserviceaccount.com
 options:
   logging: CLOUD_LOGGING_ONLY
-
-# Use the correct service account to run the build
-serviceAccount: 457527257985-compute@developer.gserviceaccount.com
