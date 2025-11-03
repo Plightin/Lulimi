@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lulimi - Community Contribution</title>
+    <title>Lulimi CCP - Community Contribution Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for loading spinner */
@@ -22,642 +22,533 @@
         }
     </style>
 </head>
-<body class="h-full font-sans antialiased text-gray-200">
-    <div id="app" class="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
+<body class="h-full font-sans antialiased text-gray-200 bg-gray-900 flex flex-col">
+
+    <!-- Modal Structure -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
+            <div class="p-6 text-center">
+                <h3 id="modal-title" class="text-2xl font-bold text-white mb-4">Modal Title</h3>
+                <p id="modal-message" class="text-gray-300 mb-6">Modal message goes here.</p>
+                <button id="modal-close-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Wrapper -->
+    <div id="app" class="flex-grow flex flex-col items-center p-4 w-full">
         
         <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold text-white mb-2">Lulimi</h1>
-            <p class="text-xl text-indigo-300">Community Contribution Platform</p>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="w-full max-w-3xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-            
-            <!-- Auth Section -->
-            <div class="p-4 flex justify-end items-center bg-gray-800 border-b border-gray-700 min-h-[68px]">
-                <p id="user-display" class="hidden text-sm text-gray-400 mr-4"></p>
-                <button id="btn-google-signin" onclick="signInWithGoogle()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm">
+        <header class="w-full max-w-4xl flex justify-between items-center mb-8">
+            <div class="text-left">
+                <h1 class="text-3xl font-bold text-white">Lulimi CCP</h1>
+                <p class="text-lg text-indigo-300">Community Contribution Platform</p>
+            </div>
+            <div>
+                <span id="auth-status" class="text-sm text-gray-400 mr-4">Loading...</span>
+                <button id="btn-google-signin" class="bg-white text-gray-800 font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-200 transition duration-200">
                     Validator Sign-In
                 </button>
-                <button id="btn-signout" onclick="signOutUser()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm">
+                <button id="btn-signout" class="hidden bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-gray-600 transition duration-200">
                     Sign Out
                 </button>
             </div>
+        </header>
 
-            <!-- Tab Navigation -->
-            <div class="flex bg-gray-700">
-                <button id="tab-contribute" onclick="switchTab('contribute')" class="flex-1 py-4 px-6 font-semibold text-lg text-white border-b-4 border-indigo-500 hover:bg-gray-600 transition duration-200">
-                    Contribute New Data
-                </button>
-                <button id="tab-validate" onclick="switchTab('validate')" class="hidden flex-1 py-4 px-6 font-semibold text-lg text-gray-400 border-b-4 border-transparent hover:bg-gray-600 transition duration-200">
-                    Validate Submissions
+        <!-- Tabs -->
+        <div class="w-full max-w-4xl mb-8">
+            <div class="border-b border-gray-700">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <button id="tab-contribute" onclick="switchTab('contribute')" class="tab-btn border-indigo-500 text-indigo-400 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg">
+                        Contribute New Data
+                    </button>
+                    <button id="tab-validate" onclick="switchTab('validate')" class="tab-btn border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg hidden">
+                        Validate Submissions
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content: Contribute -->
+        <div id="content-contribute" class="tab-content w-full max-w-4xl">
+            <div class="bg-gray-800 rounded-2xl shadow-2xl p-6">
+                <p class="text-lg text-gray-300 mb-6">Help train the Lulimi engine by providing a high-quality translation. Your contribution is vital for preserving and digitizing our languages.</p>
+                
+                <div class="mb-4">
+                    <label for="lang-select" class="block text-sm font-medium text-gray-300 mb-2">Select Language</label>
+                    <select id="lang-select" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="NY">Nyanja (Chichewa)</option>
+                        <option value="BM">Bemba (ChiBemba)</option>
+                        <option value="TO">Tonga (ChiTonga)</option>
+                        <option value="LO">Lozi (SiLozi)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="english-text" class="block text-sm font-medium text-gray-300 mb-2">English Sentence</label>
+                    <textarea id="english-text" rows="4" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg" placeholder="e.g., The quick brown fox jumps over the lazy dog."></textarea>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="zambian-text" class="block text-sm font-medium text-gray-300 mb-2">Zambian Language Translation</label>
+                    <textarea id="zambian-text" rows="4" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg" placeholder="e.g., Genda bwinobwino..."></textarea>
+                </div>
+                
+                <button id="btn-submit" onclick="submitContribution()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 shadow-lg">
+                    Submit Contribution
                 </button>
             </div>
+        </div>
 
-            <!-- Panels -->
-            <div class="p-8">
-                <!-- Contribution Panel -->
-                <div id="panel-contribute">
-                    <p class="text-gray-300 mb-6 text-lg">
-                        Help train the Lulimi engine by providing a high-quality translation. Your contribution is vital for preserving and digitizing our languages.
-                    </p>
-                    <form id="contribution-form">
-                        <div class="mb-6">
-                            <label for="language-select" class="block text-sm font-medium text-gray-300 mb-2">Select Language</label>
-                            <select id="language-select" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="NY">Nyanja (Chichewa)</option>
-                                <option value="BM">Bemba (ChiBemba)</option>
-                                <option value="TO">Tonga (ChiTonga)</option>
-                                <option value="LO">Lozi (SiLozi)</option>
-                            </select>
-                        </div>
-                        <div class="mb-6">
-                            <label for="english-text" class="block text-sm font-medium text-gray-300 mb-2">English Sentence</label>
-                            <textarea id="english-text" rows="3" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., The quick brown fox jumps over the lazy dog."></textarea>
-                        </div>
-                        <div class="mb-6">
-                            <label for="zambian-text" class="block text-sm font-medium text-gray-300 mb-2">Zambian Language Translation</label>
-                            <textarea id="zambian-text" rows="3" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., Genda bwinobwino..."></textarea>
-                        </div>
-                        <button type="button" onclick="submitContribution()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 shadow-lg">
-                            Submit Contribution
-                        </button>
-                    </form>
+        <!-- Tab Content: Validate -->
+        <div id="content-validate" class="tab-content w-full max-w-4xl hidden">
+            <div class="bg-gray-800 rounded-2xl shadow-2xl p-6">
+                <h2 class="text-2xl font-semibold text-white mb-4">Validate Community Submissions</h2>
+                <p class="text-gray-300 mb-6">Approve or correct submissions to help build our gold-standard dataset. You are viewing a random submission that needs review.</p>
+                
+                <div id="validation-loader" class="flex justify-center items-center h-48">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-500 h-12 w-12"></div>
                 </div>
 
-                <!-- Validation Panel -->
-                <div id="panel-validate" class="hidden">
-                    <p class="text-gray-300 mb-6 text-lg">
-                        Review submissions from other users. You need 3 approvals to add a sentence to the training data.
-                    </p>
-                    <div id="validation-card" class="bg-gray-700 p-6 rounded-lg shadow-inner">
-                        <div id="validation-loader" class="flex justify-center items-center h-48">
-                            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-500 h-12 w-12"></div>
-                        </div>
-                        <div id="validation-content" class="hidden">
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-400 mb-1">English</label>
-                                <p id="validate-english" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
-                            </div>
-                            <div class="mb-6">
-                                <label id="validate-language-label" class="block text-sm font-medium text-gray-400 mb-1">Suggested Translation (Nyanja)</label>
-                                <p id="validate-zambian" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
-                                <!-- Editable text area for corrections -->
-                                <textarea id="validate-zambian-edit" class="hidden w-full text-lg text-white p-3 bg-gray-900 rounded-md border border-indigo-500" rows="3"></textarea>
-                            </div>
-                            
-                            <!-- Standard Validation Buttons -->
-                            <div id="standard-buttons" class="flex space-x-4">
-                                <button onclick="handleValidation('reject')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                                    Reject
-                                </button>
-                                <button onclick="suggestCorrection()" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-6 rounded-lg transition duration-200">
-                                    Suggest Correction
-                                </button>
-                                <button onclick="handleValidation('approve')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                                    Approve
-                                </button>
-                            </div>
-                            <!-- Correction Mode Buttons -->
-                            <div id="correction-buttons" class="hidden flex space-x-4">
-                                <button onclick="cancelCorrection()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                                    Cancel
-                                </button>
-                                <button onclick="submitCorrection()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
-                                    Submit Final Correction
-                                </button>
-                            </div>
-                        </div>
-                        <div id="validation-empty" class="hidden text-center h-48 flex flex-col justify-center items-center">
-                            <p class="text-xl text-gray-400">No submissions to validate!</p>
-                            <p class="text-gray-500">Please check back later or add a new contribution.</p>
-                        </div>
+                <div id="validation-content" class="hidden">
+                    <div class="mb-4">
+                        <p class="text-sm font-medium text-gray-400">Language</p>
+                        <p id="validate-lang" class="text-lg font-semibold text-indigo-300"></p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-400">English Sentence</label>
+                        <p id="validate-english" class="text-lg text-white bg-gray-700 p-3 rounded-lg"></p>
+                    </div>
+
+                    <div class="mb-6">
+                        <label id="validate-zambian-label" for="validate-zambian" class="block text-sm font-medium text-gray-400">Submitted Zambian Translation</label>
+                        <textarea id="validate-zambian" rows="4" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg"></textarea>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="btn-approve" onclick="submitValidation('approve')" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200">
+                            Approve
+                        </button>
+                        <button id="btn-correction" onclick="submitValidation('correction')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200">
+                            Submit Correction
+                        </button>
+                        <button id="btn-reject" onclick="submitValidation('reject')" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200">
+                            Reject (Skip)
+                        </button>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Footer -->
-        <div class="text-center mt-8">
-            <p class="text-gray-500">Copyright &copy; 2025 Inwit Systems Ltd. All rights reserved. Building bridges, one word at a time.</p>
-            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
-                <a href="https://onelink.to/inwitapp" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Download Inwit App</a>
-                <a href="https://inwitsystems.com/radio/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Inwit Online Radio</a>
-                <a href="https://inwit.tv/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Stream Inwit TV</a>
-                <a href="https://inwitsystems.com/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">More From Inwit Systems</a>
+                <div id="validation-empty" class="hidden text-center h-48 flex flex-col justify-center">
+                    <p class="text-xl text-gray-400">No submissions are currently available for validation.</p>
+                    <p class="text-gray-500 mt-2">Please check back later!</p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for feedback -->
-    <div id="modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-2xl max-w-sm w-full p-8 text-center">
-            <h3 id="modal-title" class="text-2xl font-bold text-white mb-4">Thank You!</h3>
-            <p id="modal-message" class="text-gray-300 text-lg mb-6">Your contribution has been submitted for validation.</p>
-            <button onclick="closeModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition duration-200">
-                Close
-            </button>
+    <!-- Footer -->
+    <footer class="text-center pt-12 pb-8 mt-auto">
+        <!-- New Translator Link -->
+        <div class="mb-6">
+            <a href="https://lulimi-translator-457527257985.africa-south1.run.app/" target="_blank" class="text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-6 py-3 rounded-lg transition duration-200 shadow-md">
+                Try the Lulimi Translator
+            </a>
         </div>
-    </div>
+
+        <p class="text-gray-500">Copyright &copy; 2025 Inwit Systems Ltd. All rights reserved. Building bridges, one word at a time.</p>
+        <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
+            <a href="https://onelink.to/inwitapp" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Download Inwit App</a>
+            <a href="https://inwitsystems.com/radio/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Inwit Online Radio</a>
+            <a href="https://inwit.tv/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Stream Inwit TV</a>
+            <a href="https://inwitsystems.com/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">More From Inwit Systems</a>
+        </div>
+    </footer>
+
 
     <!-- Firebase and App Logic -->
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { 
-            getFirestore, setLogLevel, doc, getDoc, addDoc, setDoc, updateDoc, 
-            deleteDoc, onSnapshot, collection, query, where, getDocs, 
-            runTransaction, writeBatch, limit, increment
+            getFirestore, setLogLevel, doc, collection, query, 
+            where, getDocs, addDoc, updateDoc, deleteDoc, 
+            limit, serverTimestamp, getDoc, setDoc, runTransaction 
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { 
-            getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged,
+            getAuth, signInAnonymously, onAuthStateChanged, 
             GoogleAuthProvider, signInWithPopup, signOut
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- !! CONFIGURATION !! ---
-        const liveFirebaseConfig = {
-            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // <-- Regenerated Key
+        // --- CONFIGURATION ---
+        // This is the public, *restricted* config for the live deployed site.
+        const firebaseConfigProd = {
+            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // Your restricted API key
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
             storageBucket: "lulimi-ccp-project.appspot.com",
         };
-        
+        const PROD_APP_ID = "default-app-id";
         // --- End of Config ---
 
         // Initialize Firebase
-        let app, db, auth, userId, appId;
+        let app, db, auth;
+        let authUser = null; // Store the current authenticated user
         let userRole = "contributor"; // Default role
-        let currentValidationDocId = null;
-        let currentValidationDocData = null;
-
-        // --- App Initialization ---
         
-        async function initializeLulimiApp() {
-            try {
-                const isCanvasEnv = typeof __firebase_config !== 'undefined' && typeof __app_id !== 'undefined';
-                
-                const config = isCanvasEnv 
-                    ? JSON.parse(__firebase_config) 
-                    : liveFirebaseConfig;
-                
-                appId = isCanvasEnv 
-                    ? __app_id 
-                    : 'default-app-id'; // Fallback for live deploy
+        let PUBLIC_COLLECTION_PATH;
+        let USER_COLLECTION_PATH; 
+        
+        let currentValidationDoc = null; // Store the doc being validated
 
-                if (!config.projectId) {
-                    console.error("FirebaseError: 'projectId' not provided in firebase.initializeApp.");
-                    showModal("Configuration Error", "Firebase ProjectID is missing. The app cannot start.");
-                    return;
-                }
-                
-                if (!config.apiKey) {
-                    console.error("FirebaseError: 'apiKey' not provided in firebase.initializeApp.");
-                    showModal("Configuration Error", "Firebase API Key is missing. The app cannot start.");
-                    return;
-                }
-
-                app = initializeApp(config);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                setLogLevel('Debug');
-
-                await authUser(isCanvasEnv);
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showModal("Initialization Error", "Could not connect to Firebase. Please check the console.");
-            }
-        }
-
-        async function authUser(isCanvasEnv) {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    // User is authenticated
-                    console.log("User is authenticated:", user.uid);
-                    userId = user.uid;
-
-                    if (user.isAnonymous) {
-                        userRole = "contributor";
-                        console.log("User role: contributor (anonymous)");
-                        updateUIAfterAuth(user);
-                        loadNextValidation(); // Load data in background
-                    } else {
-                        // This is a non-anonymous user (e.g., Google Sign-In)
-                        await checkUserRole(user); // Sets global userRole
-                        updateUIAfterAuth(user); // Update UI based on new role
-                        loadNextValidation();
-                    }
-
-                } else {
-                    // User is signed out
-                    console.log("No user signed in, authenticating anonymously...");
-                    userRole = "contributor";
-                    updateUIAfterAuth(null); // Update UI for logged-out state
-
-                    try {
-                        if (isCanvasEnv && typeof __initial_auth_token !== 'undefined') {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Authentication failed:", error);
-                        showModal("Auth Error", "Could not authenticate user. Check Firebase Console settings.");
-                    }
-                }
-            });
-        }
-
-        async function checkUserRole(user) {
-            if (!db || !appId) return;
-            
-            // Path to the user's private document
-            // `artifacts/{appId}/users/{userId}`
-            const userDocRef = doc(db, "artifacts", appId, "users", user.uid);
-            
-            try {
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists() && userDoc.data().role === "validator") {
-                    console.log("User role: validator");
-                    userRole = "validator";
-                } else {
-                    console.log("User role: contributor (signed in)");
-                    userRole = "contributor";
-                    // Optional: Create a user doc if it doesn't exist
-                    if (!userDoc.exists()) {
-                        await setDoc(userDocRef, {
-                            email: user.email,
-                            displayName: user.displayName,
-                            role: "contributor", // Default new signups to contributor
-                            joinedAt: new Date()
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error("Error checking user role:", error);
-                // This might fail due to security rules if the doc doesn't exist.
-                // We'll try to create it.
-                if (error.code === 'permission-denied' || error.code === 'not-found') {
-                     console.log("No user profile found, creating one.");
-                     try {
-                        await setDoc(userDocRef, {
-                            email: user.email,
-                            displayName: user.displayName,
-                            role: "contributor",
-                            joinedAt: new Date()
-                        });
-                     } catch (e) {
-                         console.error("Failed to create user profile:", e);
-                     }
-                }
-                userRole = "contributor"; // Default to contributor on error
-            }
-        }
-
-        function updateUIAfterAuth(user = null) {
-            if (user && !user.isAnonymous) {
-                // Signed-in (Google) user
-                document.getElementById('btn-google-signin').classList.add('hidden');
-                document.getElementById('btn-signout').classList.remove('hidden');
-                const userDisplay = document.getElementById('user-display');
-                userDisplay.innerText = `Welcome, ${user.displayName || user.email}`;
-                userDisplay.classList.remove('hidden');
-
-                if (userRole === 'validator') {
-                    document.getElementById('tab-validate').classList.remove('hidden');
-                } else {
-                    document.getElementById('tab-validate').classList.add('hidden');
-                }
-            } else {
-                // Anonymous or logged-out user
-                document.getElementById('btn-google-signin').classList.remove('hidden');
-                document.getElementById('btn-signout').classList.add('hidden');
-                document.getElementById('user-display').classList.add('hidden');
-                document.getElementById('tab-validate').classList.add('hidden');
-            }
-            // Reset to contribute tab on auth change
-            switchTab('contribute');
-        }
-
-        // --- UI Control ---
+        // --- Modal Functions ---
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
 
         function showModal(title, message) {
-            document.getElementById('modal-title').innerText = title;
-            document.getElementById('modal-message').innerText = message;
-            document.getElementById('modal').classList.remove('hidden');
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            modalBackdrop.classList.remove('hidden');
         }
+        modalCloseBtn.onclick = () => {
+            modalBackdrop.classList.add('hidden');
+        };
 
-        window.closeModal = function() {
-            document.getElementById('modal').classList.add('hidden');
-        }
-
-        window.switchTab = function(tab) {
-            // Force contribute tab if user is not a validator
-            if (tab === 'validate' && userRole !== 'validator') {
-                tab = 'contribute';
-            }
-
-            if (tab === 'contribute') {
-                document.getElementById('panel-contribute').classList.remove('hidden');
-                document.getElementById('panel-validate').classList.add('hidden');
-                document.getElementById('tab-contribute').classList.add('text-white', 'border-indigo-500');
-                document.getElementById('tab-contribute').classList.remove('text-gray-400', 'border-transparent');
-                
-                const validateTab = document.getElementById('tab-validate');
-                if (validateTab) {
-                    validateTab.classList.add('text-gray-400', 'border-transparent');
-                    validateTab.classList.remove('text-white', 'border-indigo-500');
-                }
-            } else {
-                document.getElementById('panel-contribute').classList.add('hidden');
-                document.getElementById('panel-validate').classList.remove('hidden');
-                document.getElementById('tab-contribute').classList.remove('text-white', 'border-indigo-500');
-                document.getElementById('tab-contribute').classList.add('text-gray-400', 'border-transparent');
-                document.getElementById('tab-validate').classList.add('text-gray-400', 'border-transparent');
-                document.getElementById('tab-validate').classList.remove('text-gray-400', 'border-transparent');
-                document.getElementById('tab-validate').classList.add('text-white', 'border-indigo-500');
-                
-                if (!currentValidationDocId) {
-                    loadNextValidation();
-                }
-            }
-        }
-
-        // --- Auth Functions ---
-
-        window.signInWithGoogle = async function() {
-            if (!auth) return;
-            const provider = new GoogleAuthProvider();
+        // --- Tab Switching ---
+        window.switchTab = (tabName) => {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-500', 'text-indigo-400');
+                btn.classList.add('border-transparent', 'text-gray-400');
+            });
             
-            try {
-                const result = await signInWithPopup(auth, provider);
-                // This will trigger the onAuthStateChanged listener, 
-                // which will then call checkUserRole and updateUIAfterAuth.
-                console.log("Google Sign-In successful:", result.user.uid);
-            } catch (error) {
-                console.error("Google Sign-In failed:", error);
-                showModal("Sign-In Error", "Could not sign in with Google. See console.");
-            }
-        }
-
-        window.signOutUser = async function() {
-            if (!auth) return;
-            try {
-                await signOut(auth);
-                // This will trigger onAuthStateChanged, which will
-                // sign the user in anonymously and reset the UI.
-                console.log("User signed out.");
-                userRole = "contributor"; // Reset role
-                // onAuthStateChanged will handle the rest
-            } catch (error) {
-                console.error("Sign-out failed:", error);
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('border-indigo-500', 'text-indigo-400');
+            
+            if (tabName === 'validate') {
+                loadNextValidation();
             }
         }
 
         // --- Contribution Logic ---
-
-        window.submitContribution = async function() {
-            if (!db || !appId) {
-                showModal("Error", "Database not connected.");
+        window.submitContribution = async () => {
+            if (!authUser) {
+                showModal("Auth Error", "You must be signed in to contribute. Please refresh the page.");
                 return;
             }
-
-            const lang = document.getElementById('language-select').value;
+            
+            const lang = document.getElementById('lang-select').value;
             const english = document.getElementById('english-text').value.trim();
             const zambian = document.getElementById('zambian-text').value.trim();
-
+            
             if (!english || !zambian) {
-                showModal("Error", "Please fill in both sentences.");
+                showModal("Missing Info", "Please provide both the English and Zambian sentences.");
                 return;
             }
-
+            
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.textContent = "Submitting...";
+            
             try {
-                // Use the public collection path
-                const colRef = collection(db, "artifacts", appId, "public", "data", "unvalidated_sentences");
-                const docRef = await addDoc(colRef, {
+                const unvalidatedCollection = collection(db, PUBLIC_COLLECTION_PATH, 'unvalidated_sentences');
+                await addDoc(unvalidatedCollection, {
                     lang: lang,
                     english: english,
+                    english_lower: english.toLowerCase().replace(/[.,!?]/g, ''),
                     zambian: zambian,
-                    approvals: 0,
-                    rejections: 0,
-                    submittedBy: userId,
-                    submittedAt: new Date()
+                    zambian_lower: zambian.toLowerCase().replace(/[.,!?]/g, ''),
+                    submittedBy: authUser.uid,
+                    createdAt: serverTimestamp(),
+                    approvalCount: 0
                 });
-                console.log("Document written with ID: ", docRef.id);
-                showModal("Thank You!", "Your contribution has been submitted for validation.");
-                // Clear the form
-                document.getElementById('contribution-form').reset();
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                showModal("Submission Error", "Could not submit your contribution. See console for details.");
+                
+                showModal("Success!", "Your contribution has been submitted for validation. Thank you!");
+                document.getElementById('english-text').value = '';
+                document.getElementById('zambian-text').value = '';
+                
+            } catch (error) {
+                console.error("Error submitting contribution:", error);
+                showModal("Error", "Could not submit contribution. See console for details.");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Submit Contribution";
             }
         }
 
         // --- Validation Logic ---
-
         async function loadNextValidation() {
-            if (!db || !userId || !appId) {
-                console.warn("DB, User, or AppID not ready for validation load.");
-                return;
-            }
-            
-            // Don't bother loading if the user isn't a validator
             if (userRole !== 'validator') {
-                document.getElementById('validation-loader').classList.add('hidden');
-                document.getElementById('validation-empty').classList.remove('hidden');
-                document.getElementById('validation-empty').querySelector('p').innerText = "Sign in as a validator to review submissions.";
+                showModal("Access Denied", "You must be a trusted validator to access this section.");
                 return;
             }
 
-            document.getElementById('validation-loader').classList.remove('hidden');
-            document.getElementById('validation-content').classList.add('hidden');
-            document.getElementById('validation-empty').classList.add('hidden');
-            document.getElementById('validation-empty').querySelector('p').innerText = "No submissions to validate!"; // Reset text
-            cancelCorrection(); // Reset correction state
-
+            const loader = document.getElementById('validation-loader');
+            const content = document.getElementById('validation-content');
+            const empty = document.getElementById('validation-empty');
+            
+            loader.classList.remove('hidden');
+            content.classList.add('hidden');
+            empty.classList.add('hidden');
+            
             try {
-                // Use the public collection path
-                const colRef = collection(db, "artifacts", appId, "public", "data", "unvalidated_sentences");
-                
-                // Query for a document that the user has NOT submitted
+                // Find a doc that hasn't been validated by this user
+                // This is a simple query; a real app might need a "seenBy" array
                 const q = query(
-                    colRef,
-                    where("submittedBy", "!=", userId),
-                    limit(1)
+                    collection(db, PUBLIC_COLLECTION_PATH, 'unvalidated_sentences'),
+                    where("submittedBy", "!=", authUser.uid), // Don't validate your own
+                    limit(1) 
+                    // To be more robust, you'd add: where("validatedBy", "not-array-contains", authUser.uid)
+                    // For now, we just get the first one they didn't submit.
                 );
-
+                
                 const querySnapshot = await getDocs(q);
-
+                
                 if (querySnapshot.empty) {
-                    console.log("No documents to validate.");
-                    document.getElementById('validation-empty').classList.remove('hidden');
-                    currentValidationDocId = null;
-                    currentValidationDocData = null;
+                    currentValidationDoc = null;
+                    loader.classList.add('hidden');
+                    empty.classList.remove('hidden');
                 } else {
-                    const doc = querySnapshot.docs[0];
-                    currentValidationDocId = doc.id;
-                    currentValidationDocData = doc.data();
-
-                    // Display the data
-                    document.getElementById('validate-english').innerText = currentValidationDocData.english;
-                    document.getElementById('validate-zambian').innerText = currentValidationDocData.zambian;
-                    document.getElementById('validate-language-label').innerText = `Suggested Translation (${currentValidationDocData.lang})`;
+                    currentValidationDoc = querySnapshot.docs[0];
+                    const data = currentValidationDoc.data();
                     
-                    document.getElementById('validation-content').classList.remove('hidden');
+                    document.getElementById('validate-lang').textContent = data.lang;
+                    document.getElementById('validate-english').textContent = data.english;
+                    document.getElementById('validate-zambian').value = data.zambian;
+                    
+                    loader.classList.add('hidden');
+                    content.classList.remove('hidden');
                 }
-            } catch (e) {
-                console.error("Error fetching validation doc: ", e);
-                showModal("Validation Error", "Could not load a document to validate. Check permissions.");
-            } finally {
-                document.getElementById('validation-loader').classList.add('hidden');
+            } catch (error) {
+                console.error("Error fetching validation doc: ", error);
+                loader.classList.add('hidden');
+                showModal("Error", "Could not load validation data. See console.");
             }
         }
 
-        window.handleValidation = async function(action) {
-            if (!currentValidationDocId || !db || !appId) return;
+        window.submitValidation = async (action) => {
+            if (!currentValidationDoc) return;
 
-            // Use the public collection path
-            const docRef = doc(db, "artifacts", appId, "public", "data", "unvalidated_sentences", currentValidationDocId);
+            const docRef = currentValidationDoc.ref;
+            const docId = currentValidationDoc.id;
+            const data = currentValidationDoc.data();
+            
+            // Disable buttons
+            document.querySelectorAll('#content-validate button').forEach(b => b.disabled = true);
+            
+            try {
+                if (action === 'reject') {
+                    // Just delete the bad submission
+                    await deleteDoc(docRef);
+                    showModal("Rejected", "The submission has been discarded.");
+                    
+                } else if (action === 'approve' || action === 'correction') {
+                    // Use a transaction to safely move the document
+                    await runTransaction(db, async (transaction) => {
+                        let finalData;
+                        
+                        if (action === 'correction') {
+                            const correctedZambian = document.getElementById('validate-zambian').value.trim();
+                            if (!correctedZambian) {
+                                throw new Error("Corrected translation cannot be empty.");
+                            }
+                            // Use corrected data
+                            finalData = {
+                                ...data,
+                                zambian: correctedZambian,
+                                zambian_lower: correctedZambian.toLowerCase().replace(/[.,!?]/g, ''),
+                                validatedBy: authUser.uid, // Marked as validated by this expert
+                                validatedAt: serverTimestamp()
+                            };
+                        } else {
+                            // Use original data, just add validator info
+                            finalData = {
+                                ...data,
+                                validatedBy: authUser.uid,
+                                validatedAt: serverTimestamp()
+                            };
+                        }
+                        
+                        // Remove fields we don't need in the final collection
+                        delete finalData.approvalCount; 
+                        
+                        // 1. Create the new validated doc
+                        const validatedDocRef = doc(db, PUBLIC_COLLECTION_PATH, 'validated_sentences', docId);
+                        transaction.set(validatedDocRef, finalData);
+                        
+                        // 2. Delete the old unvalidated doc
+                        transaction.delete(docRef);
+                    });
+                    
+                    showModal("Validated!", "Thank you, this translation is now part of the gold-standard dataset.");
+                }
+                
+                // Load the next one
+                loadNextValidation();
+
+            } catch (error) {
+                console.error("Validation submission error:", error);
+                showModal("Error", `Validation failed: ${error.message}`);
+            } finally {
+                // Re-enable buttons
+                document.querySelectorAll('#content-validate button').forEach(b => b.disabled = false);
+            }
+        }
+
+        // --- Authentication Logic ---
+        const googleProvider = new GoogleAuthProvider();
+        const btnSignIn = document.getElementById('btn-google-signin');
+        const btnSignOut = document.getElementById('btn-signout');
+        const authStatus = document.getElementById('auth-status');
+        const tabValidate = document.getElementById('tab-validate');
+
+        // Sign in with Google
+        btnSignIn.onclick = async () => {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                // Auth state change will handle the rest
+            } catch (error) {
+                console.error("Google Sign-In failed:", error);
+                showModal("Sign-In Error", "Could not sign in with Google. See console.");
+            }
+        };
+
+        // Sign out
+        btnSignOut.onclick = async () => {
+            await signOut(auth);
+            // Auth state change will handle signing in anonymously
+        };
+
+        async function getUserRole(user) {
+            if (user.isAnonymous) {
+                return "contributor"; // Anonymous users are always contributors
+            }
+            
+            // Check for a user profile doc
+            const userDocRef = doc(db, USER_COLLECTION_PATH, user.uid);
+            const userDoc = await getDoc(userDocRef);
+            
+            if (userDoc.exists()) {
+                return userDoc.data().role || "contributor";
+            } else {
+                // First-time sign-in with Google, create their profile
+                try {
+                    await setDoc(userDocRef, {
+                        email: user.email,
+                        displayName: user.displayName,
+                        uid: user.uid,
+                        role: "contributor", // Default role
+                        createdAt: serverTimestamp()
+                    });
+                    return "contributor";
+                } catch (error) {
+                    console.error("Failed to create user profile:", error);
+                    return "contributor"; // Fallback to contributor
+                }
+            }
+        }
+
+        function updateUIForAuth(user, role) {
+            authUser = user;
+            userRole = role;
+
+            if (user.isAnonymous) {
+                authStatus.textContent = "Status: Contributing Anonymously";
+                btnSignIn.classList.remove('hidden');
+                btnSignOut.classList.add('hidden');
+                tabValidate.classList.add('hidden');
+                // If they were on the validate tab, switch them back
+                if (!document.getElementById('content-contribute').classList.contains('hidden')) {
+                   //
+                } else {
+                   switchTab('contribute');
+                }
+            } else {
+                authStatus.textContent = `Signed in as: ${user.displayName || user.email} (${role})`;
+                btnSignIn.classList.add('hidden');
+                btnSignOut.classList.remove('hidden');
+                
+                if (role === 'validator') {
+                    tabValidate.classList.remove('hidden');
+                } else {
+                    tabValidate.classList.add('hidden');
+                }
+            }
+        }
+
+        async function initializeLulimiApp() {
+            let config;
+            let APP_ID;
 
             try {
-                await runTransaction(db, async (transaction) => {
-                    const sfDoc = await transaction.get(docRef);
-                    if (!sfDoc.exists()) {
-                        throw "Document does not exist!";
-                    }
+                // Check if running in the secure Canvas environment
+                if (typeof __firebase_config !== 'undefined' && __firebase_config !== '""' && __firebase_config !== '{}') {
+                    console.log("Initializing with secure Canvas environment config.");
+                    config = JSON.parse(__firebase_config);
+                    APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                } else {
+                    // Running on the live site (Cloud Run)
+                    console.log("Initializing with public production config.");
+                    config = firebaseConfigProd;
+                    APP_ID = PROD_APP_ID;
+                }
 
-                    const data = sfDoc.data();
-                    let newApprovals = data.approvals;
-                    let newRejections = data.rejections;
-
-                    if (action === 'approve') {
-                        newApprovals = (newApprovals || 0) + 1;
-                    } else if (action === 'reject') {
-                        newRejections = (newRejections || 0) + 1;
-                    }
-
-                    // Check for promotion (3 approvals)
-                    if (newApprovals >= 3) {
-                        // Promote to validated_sentences (public path)
-                        const validatedRef = doc(collection(db, "artifacts", appId, "public", "data", "validated_sentences"));
-                        transaction.set(validatedRef, {
-                            lang: data.lang,
-                            english: data.english,
-                            zambian: data.zambian,
-                            validatedAt: new Date(),
-                            validatedBy: "community_approval"
-                        });
-                        // Delete from unvalidated
-                        transaction.delete(docRef);
-                        console.log("Promoted document to validated:", currentValidationDocId);
-                    } 
-                    // Check for demotion (3 rejections)
-                    else if (newRejections >= 3) {
-                        // Delete from unvalidated
-                        transaction.delete(docRef);
-                        console.log("Rejected and deleted document:", currentValidationDocId);
-                    } 
-                    // Otherwise, just update the counters
-                    else {
-                        transaction.update(docRef, { 
-                            approvals: newApprovals,
-                            rejections: newRejections
-                        });
+                if (!config.projectId || !config.apiKey) {
+                    showModal("Configuration Error", "Firebase configuration is missing or incomplete.");
+                    return;
+                }
+                
+                app = initializeApp(config);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug');
+                
+                // Set global paths
+                PUBLIC_COLLECTION_PATH = `artifacts/${APP_ID}/public/data`;
+                USER_COLLECTION_PATH = `artifacts/${APP_ID}/users`;
+                
+                // Handle auth state changes
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        // User is signed in (either Google or Anonymous)
+                        console.log("User is authenticated:", user.uid);
+                        const role = await getUserRole(user);
+                        console.log("User role:", role, `(anonymous: ${user.isAnonymous})`);
+                        updateUIForAuth(user, role);
+                    } else {
+                        // User is signed out, sign them in anonymously
+                        console.log("User signed out, attempting anonymous sign-in...");
+                        try {
+                            const anonUser = await signInAnonymously(auth);
+                            // This will re-trigger onAuthStateChanged
+                        } catch (error) {
+                            console.error("Anonymous sign-in failed:", error);
+                            showModal("Auth Error", "Could not authenticate user.");
+                        }
                     }
                 });
 
-                console.log(`Transaction successfully committed for action: ${action}`);
-                showModal("Success", `Submission has been ${action}d.`);
-            } catch (e) {
-                console.error("Transaction failed: ", e);
-                showModal("Error", "Validation action failed. See console.");
+            } catch (error) {
+                console.error("Initialization Error:", error);
+                showModal("Critical Error", `The app could not start: ${error.message}`);
             }
-
-            // Load the next document
-            loadNextValidation();
         }
         
-        // --- Correction Logic ---
-
-        window.suggestCorrection = function() {
-            if (!currentValidationDocData) return;
-            
-            // Show edit area, hide text
-            document.getElementById('validate-zambian').classList.add('hidden');
-            const editArea = document.getElementById('validate-zambian-edit');
-            editArea.value = currentValidationDocData.zambian; // Pre-fill with current text
-            editArea.classList.remove('hidden');
-            
-            // Swap button visibility
-            document.getElementById('standard-buttons').classList.add('hidden');
-            document.getElementById('correction-buttons').classList.remove('hidden');
-        }
-
-        window.cancelCorrection = function() {
-            // Hide edit area, show text
-            document.getElementById('validate-zambian').classList.remove('hidden');
-            document.getElementById('validate-zambian-edit').classList.add('hidden');
-            
-            // Swap button visibility
-            document.getElementById('standard-buttons').classList.remove('hidden');
-            document.getElementById('correction-buttons').classList.add('hidden');
-        }
-
-        window.submitCorrection = async function() {
-            if (!currentValidationDocId || !currentValidationDocData || !db || !appId) return;
-
-            const correctedText = document.getElementById('validate-zambian-edit').value.trim();
-            if (!correctedText || correctedText === currentValidationDocData.zambian) {
-                showModal("Error", "Please make a change or cancel.");
-                return;
-            }
-
-            // A correction is considered a final, "gold standard" approval.
-            // We will move it directly to the validated collection.
-            
-            const batch = writeBatch(db);
-            
-            // 1. Add to validated_sentences (public path)
-            const validatedRef = doc(collection(db, "artifacts", appId, "public", "data", "validated_sentences"));
-            batch.set(validatedRef, {
-                lang: currentValidationDocData.lang,
-                english: currentValidationDocData.english,
-                zambian: correctedText, // Use the new corrected text
-                validatedAt: new Date(),
-                validatedBy: userId // Mark who made the correction
-            });
-            
-            // 2. Delete from unvalidated_sentences (public path)
-            const unvalidatedRef = doc(db, "artifacts", appId, "public", "data", "unvalidated_sentences", currentValidationDocId);
-            batch.delete(unvalidatedRef);
-
-            try {
-                await batch.commit();
-                showModal("Success", "Your correction has been submitted and finalized.");
-                console.log("Correction submitted and finalized:", currentValidationDocId);
-                loadNextValidation(); // Load next doc
-            } catch (e) {
-                console.error("Error submitting correction: ", e);
-                showModal("Error", "Could not submit correction. See console.");
-            }
-        }
-
-
         // --- Global Init ---
-        // Expose functions to global scope to be accessible by onclick attributes
-        // This is necessary because we are in a module
-        window.submitContribution = submitContribution;
+        // Make functions globally accessible
         window.switchTab = switchTab;
-        window.handleValidation = handleValidation;
-        window.suggestCorrection = suggestCorrection;
-        window.cancelCorrection = cancelCorrection;
-        window.submitCorrection = submitCorrection;
-        window.signInWithGoogle = signInWithGoogle;
-        window.signOutUser = signOutUser;
+        window.submitContribution = submitContribution;
+        window.loadNextValidation = loadNextValidation;
+        window.submitValidation = submitValidation;
         
         // Start the application
         initializeLulimiApp();
-
     </script>
 </body>
 </html>
