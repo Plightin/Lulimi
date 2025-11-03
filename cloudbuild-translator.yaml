@@ -69,13 +69,6 @@ steps:
   - '--member=allUsers'
   - '--role=roles/run.invoker'
 
-# --- Build Trigger Configuration ---
-# This tells Cloud Build to ONLY run this pipeline if files
-# in the 'translator/' directory are changed.
-triggerConfig:
-  includedFiles:
-  - 'translator/**'
-
 # Define the service account and logging options
 serviceAccount: 457527257985-compute@developer.gserviceaccount.com
 options:
