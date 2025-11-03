@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lulimi - Zambian Language Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for loading spinner */
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="h-full font-sans antialiased text-gray-200">
+    <div id="app" class="flex flex-col items-center min-h-screen bg-gray-900 p-4">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold text-white mb-2">Lulimi</h1>
+            <p class="text-xl text-indigo-300">Zambian Language Engine</p>
+        </div>
+
+        <!-- Main Translator Card -->
+        <div class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden mb-8">
+            
+            <!-- Language Selection -->
+            <div class="flex items-center justify-between p-6 bg-gray-700">
+                <!-- Source Language -->
+                <div class="flex-1">
+                    <label for="source-lang" class="block text-sm font-medium text-gray-300 mb-2">From</label>
+                    <select id="source-lang" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="EN">English</option>
+                        <option value="NY">Nyanja (Chichewa)</option>
+                        <option value="BM">Bemba (ChiBemba)</option>
+                        <option value="TO">Tonga (ChiTonga)</option>
+                        <option value="LO">Lozi (SiLozi)</option>
+                    </select>
+                </div>
+                
+                <!-- Swap Button -->
+                <div class="px-4 pt-6">
+                    <button onclick="swapLanguages()" class="p-2 bg-gray-600 hover:bg-gray-500 rounded-full text-white transition duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m4 4H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Target Language -->
+                <div class="flex-1">
+                    <label for="target-lang" class="block text-sm font-medium text-gray-300 mb-2">To</label>
+                    <select id="target-lang" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="NY">Nyanja (Chichewa)</option>
+                        <option value="EN">English</option>
+                        <option value="BM">Bemba (ChiBemba)</option>
+                        <option value="TO">Tonga (ChiTonga)</option>
+                        <option value="LO">Lozi (SiLozi)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Text Areas -->
+            <div class="p-6">
+                <!-- Input Area -->
+                <div class="mb-4">
+                    <textarea id="input-text" rows="5" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg" placeholder="Enter text..."></textarea>
+                </div>
+                
+                <!-- Translate Button -->
+                <button id="btn-translate" onclick="translateText()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition duration-200 shadow-lg">
+                    Translate
+                </button>
+
+                <!-- Output Area -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Translation</label>
+                    <div id="output-loader" class="hidden flex justify-center items-center h-24">
+                        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-500 h-12 w-12"></div>
+                    </div>
+                    <textarea id="output-text" rows="5" class="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 text-lg" placeholder="Translation will appear here..." readonly></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Phrases Section -->
+        <div class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden mb-8">
+            <h3 class="text-xl font-semibold text-white p-6 border-b border-gray-700">Common Phrases</h3>
+            <div id="common-phrases-loader" class="flex justify-center items-center h-24">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-500 h-12 w-12"></div>
+            </div>
+            <div id="common-phrases-content" class="hidden p-6 space-y-3">
+                <!-- Phrases will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-gray-500">Copyright &copy; 2025 Inwit Systems Ltd. All rights reserved. Building bridges, one word at a time.</p>
+            <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4">
+                <a href="https://onelink.to/inwitapp" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Download Inwit App</a>
+                <a href="https://inwitsystems.com/radio/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Inwit Online Radio</a>
+                <a href="https://inwit.tv/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">Stream Inwit TV</a>
+                <a href="https://inwitsystems.com/" target="_blank" class="text-sm text-indigo-400 hover:text-indigo-300 transition duration-200">More From Inwit Systems</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase and App Logic -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getFirestore, setLogLevel, doc, collection, query, 
+            where, getDocs, limit
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { 
+            getAuth, signInAnonymously, onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- CONFIGURATION ---
+        // This is the public, *restricted* config for the live deployed site.
+        const firebaseConfigProd = {
+            apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q", // Your restricted API key
+            authDomain: "lulimi-ccp-project.firebaseapp.com",
+            projectId: "lulimi-ccp-project",
+            storageBucket: "lulimi-ccp-project.appspot.com",
+        };
+        const PROD_APP_ID = "default-app-id";
+        // --- End of Config ---
+
+        // Initialize Firebase
+        let app, db, auth;
+        let COLLECTION_PATH; // Will be set during initialization
+
+        async function initializeLulimiApp() {
+            let config;
+            let APP_ID;
+
+            try {
+                // Check if running in the secure Canvas environment
+                if (typeof __firebase_config !== 'undefined' && __firebase_config !== '""' && __firebase_config !== '{}') {
+                    console.log("Initializing with secure Canvas environment config.");
+                    config = JSON.parse(__firebase_config);
+                    APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                } else {
+                    // Running on the live site (Cloud Run)
+                    console.log("Initializing with public production config.");
+                    config = firebaseConfigProd;
+                    APP_ID = PROD_APP_ID;
+                }
+
+                if (!config.projectId || !config.apiKey) {
+                    throw new Error("Firebase configuration is missing or incomplete.");
+                }
+
+                app = initializeApp(config);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug');
+                
+                // Set the global collection path
+                COLLECTION_PATH = `artifacts/${APP_ID}/public/data/validated_sentences`;
+
+                // Authenticate anonymously to get read access
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        console.log("Authenticated anonymously:", user.uid);
+                        // Once authenticated, load common phrases
+                        loadCommonPhrases();
+                    } else {
+                        signInAnonymously(auth).catch((error) => {
+                            console.error("Anonymous sign-in failed:", error);
+                            alert("Could not connect to translation service.");
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                alert(`Critical error: ${error.message}. See console.`);
+            }
+        }
+        
+        function setOutput(text, isLoading = false) {
+            const loader = document.getElementById('output-loader');
+            const output = document.getElementById('output-text');
+            if (isLoading) {
+                loader.classList.remove('hidden');
+                output.classList.add('hidden');
+            } else {
+                loader.classList.add('hidden');
+                output.classList.remove('hidden');
+                output.value = text;
+            }
+        }
+
+        async function findTranslation(sourceLang, sourceText, targetLang) {
+            if (!db) return null;
+            
+            // Normalize input text for lookup (lowercase, remove punctuation)
+            const normalizedInput = sourceText.toLowerCase().replace(/[.,!?]/g, '');
+
+            // 1. Find the English "pivot" text first
+            let pivotText = null;
+            
+            if (sourceLang === "EN") {
+                pivotText = normalizedInput;
+            } else {
+                // Source is Zambian, find the English equivalent
+                const q = query(
+                    collection(db, COLLECTION_PATH),
+                    where("lang", "==", sourceLang),
+                    where("zambian_lower", "==", normalizedInput),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    pivotText = querySnapshot.docs[0].data().english_lower; // Use the normalized English pivot
+                    console.log(`Pivot text found: ${pivotText}`);
+                }
+            }
+            
+            if (!pivotText) {
+                console.log("No pivot text found.");
+                return null; // No translation found
+            }
+            
+            // 2. Now, find the target language text using the pivotText
+            if (targetLang === "EN") {
+                // We need to find the *original* casing for the English text
+                const q = query(
+                    collection(db, COLLECTION_PATH),
+                    where("english_lower", "==", pivotText),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                 if (!querySnapshot.empty) {
+                    return querySnapshot.docs[0].data().english; // Return original casing
+                }
+                return sourceText; // Fallback
+            } else {
+                // Target is Zambian, find its text
+                const q = query(
+                    collection(db, COLLECTION_PATH),
+                    where("lang", "==", targetLang),
+                    where("english_lower", "==", pivotText), // Search using normalized English
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    return querySnapshot.docs[0].data().zambian; // Return original casing
+                }
+            }
+            
+            return null; // Target translation not found
+        }
+        
+        window.translateText = async function() {
+            const sourceLang = document.getElementById('source-lang').value;
+            const targetLang = document.getElementById('target-lang').value;
+            const inputText = document.getElementById('input-text').value.trim();
+            
+            if (!inputText) return;
+            
+            // Handle same-language translation
+            if (sourceLang === targetLang) {
+                setOutput(inputText);
+                return;
+            }
+            
+            setOutput("", true); // Show loader
+            
+            try {
+                const translation = await findTranslation(sourceLang, inputText, targetLang);
+                
+                if (translation) {
+                    setOutput(translation);
+                } else {
+                    setOutput("Translation not found. Our database is still growing!");
+                }
+            } catch (error) {
+                console.error("Translation error:", error);
+                setOutput("Error during translation. See console.");
+            }
+        }
+        
+        window.swapLanguages = function() {
+            const sourceLang = document.getElementById('source-lang');
+            const targetLang = document.getElementById('target-lang');
+            const inputText = document.getElementById('input-text');
+            const outputText = document.getElementById('output-text');
+            
+            // Swap values
+            const tempLang = sourceLang.value;
+            sourceLang.value = targetLang.value;
+            targetLang.value = tempLang;
+            
+            // Swap text
+            const tempText = inputText.value;
+            inputText.value = outputText.value;
+            outputText.value = tempText;
+        }
+
+        async function loadCommonPhrases() {
+            if (!db) {
+                console.log("DB not ready, skipping common phrases.");
+                return;
+            }
+            
+            const loader = document.getElementById('common-phrases-loader');
+            const content = document.getElementById('common-phrases-content');
+            
+            try {
+                // Fetch 5 random (for now, just the first 5) validated sentences
+                const q = query(collection(db, COLLECTION_PATH), limit(5));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    content.innerHTML = `<p class="text-gray-400">No common phrases found yet.</p>`;
+                } else {
+                    let html = '';
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        html += `
+                            <div class="p-3 bg-gray-700 rounded-lg">
+                                <p class="text-sm text-gray-400">English</p>
+                                <p class="text-md text-white">${data.english}</p>
+                                <p class="text-sm text-gray-400 mt-2">${data.lang}</p>
+                                <p class="text-md text-white">${data.zambian}</p>
+                            </div>
+                        `;
+                    });
+                    content.innerHTML = html;
+                }
+                
+                loader.classList.add('hidden');
+                content.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error("Error loading common phrases:", error);
+                loader.classList.add('hidden');
+                content.innerHTML = `<p class="text-red-400">Error loading phrases.</p>`;
+                content.classList.remove('hidden');
+            }
+        }
+        
+        // --- Global Init ---
+        // Make functions globally accessible
+        window.translateText = translateText;
+        window.swapLanguages = swapLanguages;
+        
+        // Start the application
+        initializeLulimiApp();
+    </script>
+</body>
+</html>
