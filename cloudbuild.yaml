@@ -1,82 +1,82 @@
 steps:
-# 1. Build the Docker container image (DO NOT PUSH YET)
+# 1. Build the Docker container image for the CCP
 - name: 'gcr.io/cloud-builders/docker'
   id: Build-CCP-Image
   args:
   - 'build'
   - '-t'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
-  - '.' 
-  - '-f'
+  - '.' # Build context is root
+  - '-f' # Specify Dockerfile
   - 'ccp/Dockerfile'
 
-# 2. Grant all three required permissions
+# 2. Grant all necessary permissions to the build service account
+# This step gives the account permission to write to Artifact Registry, deploy to Cloud Run,
+# and act as the Cloud Run service identity.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Grant-All-Permissions
-  waitFor: ['Build-CCP-Image']
   entrypoint: 'sh'
   args:
   - '-c'
   - |
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/artifactregistry.writer" && \
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/run.admin" && \
-    gcloud projects add-iam-policy-binding lulimi-ccp-project \
-      --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" \
-      --role="roles/iam.serviceAccountUser"
+    gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/artifactregistry.writer"
+    gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/run.admin"
+    gcloud projects add-iam-policy-binding lulimi-ccp-project --member="serviceAccount:457527257985-compute@developer.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
 
-# 3. Wait 180 seconds (3 minutes) for ALL IAM permissions to propagate
+# 3. Wait for IAM permissions to propagate
 - name: 'ubuntu'
   id: Wait-for-IAM-Propagation
-  waitFor: ['Grant-All-Permissions']
-  args: ['sleep', '180']
-  
-# 4. --- NEW STEP ---
-# NOW that permissions are active, PUSH the image
+  args: ['sleep', '180'] # 3 minute wait
+
+# 4. Push the image to Artifact Registry
+# This step now runs *after* the 'artifactregistry.writer' role is granted.
 - name: 'gcr.io/cloud-builders/docker'
   id: Push-Image
-  waitFor: ['Wait-for-IAM-Propagation']
   args:
   - 'push'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
 
-# 5. Deploy the new container image (it will now be found)
+# 5. Deploy the new container to Cloud Run
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Deploy-Service
-  waitFor: ['Push-Image'] # Wait for the push to complete
   args:
   - 'run'
   - 'deploy'
   - 'lulimi-ccp'
-  - '--project=$PROJECT_ID' 
   - '--image'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
   - '--region'
   - 'africa-south1'
   - '--platform'
   - 'managed'
-  - '--verbosity=debug'
-  - '--service-account=457527257985-compute@developer.gserviceaccount.com'
+  - '--project'
+  - 'lulimi-ccp-project'
+  - '--service-account'
+  - '457527257985-compute@developer.gserviceaccount.com'
+  - '--verbosity=debug' # Add debug logging
 
-# 6. Make the deployed service public
+# 6. Make the new Cloud Run service public
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Make-Service-Public
-  waitFor: ['Deploy-Service']
   args:
   - 'run'
   - 'services'
   - 'add-iam-policy-binding'
   - 'lulimi-ccp'
-  - '--project=$PROJECT_ID'
   - '--region=africa-south1'
+  - '--platform=managed'
+  - '--project=lulimi-ccp-project'
   - '--member=allUsers'
   - '--role=roles/run.invoker'
-  
+
+# --- Build Trigger Configuration ---
+# This tells Cloud Build to ONLY run this pipeline if files
+# in the 'ccp/' directory are changed.
+triggerConfig:
+  includedFiles:
+  - 'ccp/**'
+
+# Define the service account and logging options
+serviceAccount: 457527257985-compute@developer.gserviceaccount.com
 options:
   logging: CLOUD_LOGGING_ONLY
-
-serviceAccount: 457527257985-compute@developer.gserviceaccount.com
-# We no longer use the implicit 'images' tag, as we have an explicit 'Push-Image' step
