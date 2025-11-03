@@ -42,7 +42,7 @@ steps:
   args:
   - 'run'
   - 'deploy'
-  - 'lulimi-ccp'
+  - 'lulimi-ccp' # Deploy the 'ccp' service
   - '--image'
   - 'africa-south1-docker.pkg.dev/$PROJECT_ID/lulimi-repo/lulimi-ccp:$COMMIT_SHA'
   - '--region'
@@ -62,19 +62,12 @@ steps:
   - 'run'
   - 'services'
   - 'add-iam-policy-binding'
-  - 'lulimi-ccp'
+  - 'lulimi-ccp' # Make the 'ccp' service public
   - '--region=africa-south1'
   - '--platform=managed'
   - '--project=lulimi-ccp-project'
   - '--member=allUsers'
   - '--role=roles/run.invoker'
-
-# --- Build Trigger Configuration ---
-# This tells Cloud Build to ONLY run this pipeline if files
-# in the 'ccp/' directory are changed.
-triggerConfig:
-  includedFiles:
-  - 'ccp/**'
 
 # Define the service account and logging options
 serviceAccount: 457527257985-compute@developer.gserviceaccount.com
