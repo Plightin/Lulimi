@@ -28,6 +28,11 @@
 
     <div class="w-full max-w-4xl">
         <header class="text-center mb-8">
+            <!-- SVG Logo -->
+            <svg class="h-16 w-16 mx-auto mb-4 text-indigo-400" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M74 56L26 100M26 100L74 144M26 100H122" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M126 56L174 100M174 100L126 144M174 100H78" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <h1 class="text-4xl font-bold text-white mb-2">Lulimi CCP</h1>
             <p class="text-lg text-gray-400">Community Contribution Platform</p>
         </header>
@@ -182,7 +187,8 @@
             onAuthStateChanged,
             GoogleAuthProvider,
             signInWithPopup,
-            signOut
+            signOut,
+            signInWithCustomToken // <-- FIX: Added custom token import
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -206,6 +212,8 @@
         let currentValidationDoc = null;
         let currentUserId = null;
         let currentUserRole = "contributor";
+        let isCanvas = false;
+        let appId = 'default-app-id';
         
         // This is your *live* configuration for the deployed app on Cloud Run
         const firebaseConfig = {
@@ -220,9 +228,10 @@
             ? JSON.parse(__firebase_config) 
             : null;
             
-        const appId = (canvasFirebaseConfig && typeof __app_id !== 'undefined') 
-            ? __app_id 
-            : 'default-app-id';
+        if (canvasFirebaseConfig && typeof __app_id !== 'undefined') {
+            isCanvas = true;
+            appId = __app_id;
+        }
 
 
         // --- UI Elements ---
@@ -237,13 +246,23 @@
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const isCanvas = !!canvasFirebaseConfig;
-                let activeConfig = isCanvas ? canvasFirebaseConfig : firebaseConfig;
+                // FIX: Check for __firebase_config to determine environment
+                let activeConfig;
 
-                if (!activeConfig || !activeConfig.projectId) {
-                    throw new Error("Firebase config is missing or invalid.");
+                if (isCanvas) {
+                    console.log("Initializing with secure Canvas config.");
+                    activeConfig = canvasFirebaseConfig;
+                } else {
+                    console.log("Initializing with public production config.");
+                    activeConfig = firebaseConfig;
                 }
 
+                if (!activeConfig || !activeConfig.projectId) {
+                    // This will catch the "App ID is missing" error if in Canvas
+                    const id = isCanvas ? (appId || "App ID") : (activeConfig.projectId || "Project ID");
+                    throw new Error(`${id} is missing. The app cannot start.`);
+                }
+                
                 const app = initializeApp(activeConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
@@ -272,10 +291,9 @@
                 document.getElementById('correct-btn').addEventListener('click', toggleCorrectionMode);
                 document.getElementById('submit-correction-btn').addEventListener('click', submitCorrection);
 
-
             } catch (error) {
                 console.error("Initialization failed:", error);
-                showModal("Initialization Error", "Could not connect to the database.");
+                showModal("Configuration Error", error.message);
             }
         });
 
@@ -291,14 +309,15 @@
                     updateUIAforUser(null, currentUserRole);
                     
                 } else {
-                    // GOOGLE USER (Potential Validator)
+                    // GOOGLE USER or CANVAS USER (Potential Validator)
                     const userDocRef = doc(usersRef, user.uid);
                     let userDoc = await getDoc(userDocRef);
 
                     if (!userDoc.exists()) {
                         // Create profile for new Google user
+                        // Note: Canvas users might not have an email
                         const newUser = {
-                            email: user.email,
+                            email: user.email || "Canvas User",
                             role: "contributor",
                             createdAt: serverTimestamp()
                         };
@@ -314,21 +333,37 @@
                 console.log(`User role: ${currentUserRole}`);
 
             } else {
-                // User is signed out, sign them in anonymously
-                console.log("User is signed out. Attempting anonymous sign-in...");
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Anonymous sign-in failed:", error);
-                    showModal("Auth Error", "Could not authenticate user.");
+                // User is signed out.
+                // FIX: Handle Canvas auth vs. Live auth
+                if (isCanvas && typeof __initial_auth_token !== 'undefined') {
+                    // Use the secure token provided by the Canvas environment
+                    console.log("Canvas environment detected. Signing in with custom token...");
+                    try {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } catch (error) {
+                         console.error("Canvas custom token sign-in failed:", error);
+                         showModal("Auth Error", "Could not authenticate user in Canvas. " + error.message);
+                    }
+                } else if (!isCanvas) {
+                    // Live environment, sign them in anonymously
+                    console.log("Live environment. Attempting anonymous sign-in...");
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (error) {
+                        console.error("Anonymous sign-in failed:", error);
+                        showModal("Auth Error", "Could not authenticate user. " + error.message);
+                    }
+                } else {
+                    console.error("Auth failed: In Canvas but no auth token found.");
+                    showModal("Auth Error", "Cannot authenticate user. No auth token provided.");
                 }
             }
         }
 
         function updateUIAforUser(user, role) {
             if (user && !user.isAnonymous) {
-                // Logged-in Google user
-                userEmailSpan.textContent = user.email;
+                // Logged-in Google user or Canvas User
+                userEmailSpan.textContent = user.email || "Canvas User";
                 userInfoDiv.style.display = 'block';
                 validatorSigninBtn.style.display = 'none';
                 
@@ -363,7 +398,8 @@
         async function logOut() {
             try {
                 await signOut(auth);
-                // Auth state change will sign user in anonymously
+                // Auth state change will sign user in anonymously (if on live) 
+                // or with custom token (if in canvas)
             } catch (error) {
                 console.error("Sign out failed:", error);
             }
@@ -406,7 +442,7 @@
 
             } catch (error) {
                 console.error("Error submitting contribution: ", error);
-                showModal("Submission Error", "Could not submit your contribution. Please try again.");
+                showModal("Submission Error", "Could not submit your contribution. Please try again. Check console for details.");
             } finally {
                 setLoading('submit', false);
             }
@@ -419,7 +455,7 @@
                 // Get one document that has not been validated by the current user
                 // Firestore doesn't support "not-in" queries on arrays effectively for this
                 // A more robust solution would be a Cloud Function, but for simplicity:
-                // We fetch one document and check the subcollection.
+                // We fetch one document.
                 
                 const q = query(unvalidatedSentencesRef, limit(1));
                 const querySnapshot = await getDocs(q);
@@ -431,7 +467,28 @@
 
                 const docSnap = querySnapshot.docs[0];
                 const docData = docSnap.data();
+                
+                // Check if lang field exists
+                if (!docData.lang) {
+                    console.warn("Skipping document with missing 'lang' field:", docSnap.id);
+                    // Delete this malformed doc
+                    await deleteDoc(doc(unvalidatedSentencesRef, docSnap.id));
+                    // Try loading the next one
+                    loadNextValidationDoc();
+                    return;
+                }
+                
                 const langField = getLanguageField(docData.lang);
+                
+                // Check if language field data exists
+                if (!docData[langField]) {
+                    console.warn(`Skipping document with missing '${langField}' data:`, docSnap.id);
+                    // Delete this malformed doc
+                    await deleteDoc(doc(unvalidatedSentencesRef, docSnap.id));
+                    // Try loading the next one
+                    loadNextValidationDoc();
+                    return;
+                }
                 
                 currentValidationDoc = {
                     id: docSnap.id,
@@ -449,6 +506,8 @@
             } catch (error) {
                 console.error("Error fetching validation doc: ", error);
                 showModal("Error", "Could not fetch the next document for validation.");
+                // We will set to empty to avoid an infinite loop
+                setValidationState('empty');
             }
         }
 
@@ -531,7 +590,7 @@
                     ...currentValidationDoc.data,
                     [currentValidationDoc.langField]: normalizedCorrection,
                     // Ensure all other language fields are also lowercase
-                    english: currentValidationDoc.data.english.toLowerCase(),
+                    english: (currentValidationDoc.data.english || "").toLowerCase(),
                     nyanja: (currentValidationDoc.data.nyanja || "").toLowerCase(),
                     bemba: (currentValidationDoc.data.bemba || "").toLowerCase(),
                     tonga: (currentValidationDoc.data.tonga || "").toLowerCase(),
@@ -563,7 +622,13 @@
             // A hash might be better, but this is simpler
             
             // *** FIX: Ensure English text is normalized before using as ID ***
-            const normalizedEnglish = docData.english.toLowerCase();
+            const normalizedEnglish = (docData.english || "unknown").toLowerCase();
+            if (!normalizedEnglish || normalizedEnglish === "unknown") {
+                 console.error("Cannot promote document with empty English text.");
+                 // Delete the malformed doc
+                 await deleteDoc(doc(unvalidatedSentencesRef, originalDocId));
+                 return;
+            }
             
             const validatedDocRef = doc(db, `artifacts/${appId}/public/data/validated_sentences`, normalizedEnglish);
             
