@@ -36,11 +36,12 @@
 
     <div class="w-full max-w-2xl">
         <header class="text-center mb-8">
-            <!-- SVG Logo -->
-            <svg class="h-16 w-16 mx-auto mb-4 text-indigo-400" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M74 56L26 100M26 100L74 144M26 100H122" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M126 56L174 100M174 100L126 144M174 100H78" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <!-- SVG Logo REPLACED with Image Logo -->
+            <img src="https://storage.googleapis.com/lulimi-ccp-project.firebasestorage.app/lulimi_logo.png" alt="Lulimi Logo" class="h-20 w-auto mx-auto mb-4" 
+                 onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+            <!-- Fallback text if logo fails to load -->
+            <h1 id="logo-fallback" class="text-4xl font-bold text-white mb-2" style="display: none;">Lulimi Translator</h1>
+            
             <h1 class="text-4xl font-bold text-white mb-2">Lulimi Translator</h1>
             <p class="text-lg text-gray-400">Zambian Language Common Phrases</p>
         </header>
