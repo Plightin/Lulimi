@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lulimi - Public Translator</title>
+    <title>Lulimi - Zambian Language Translator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -16,21 +16,43 @@
         .modal.flex {
             display: flex;
         }
+        /* Custom scrollbar for translation boxes */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #1f2937; /* bg-gray-800 */
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #4f46e5; /* bg-indigo-600 */
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #4338ca; /* bg-indigo-700 */
+        }
     </style>
 </head>
 <body class="h-full flex items-center justify-center bg-gray-900 text-gray-200 p-4">
 
     <div class="w-full max-w-2xl">
         <header class="text-center mb-8">
+            <!-- SVG Logo -->
+            <svg class="h-16 w-16 mx-auto mb-4 text-indigo-400" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M74 56L26 100M26 100L74 144M26 100H122" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M126 56L174 100M174 100L126 144M174 100H78" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
             <h1 class="text-4xl font-bold text-white mb-2">Lulimi Translator</h1>
-            <p class="text-lg text-gray-400">Common Zambian Phrases (Powered by the Lulimi CCP)</p>
+            <p class="text-lg text-gray-400">Zambian Language Common Phrases</p>
         </header>
 
-        <main class="bg-gray-800 shadow-2xl rounded-2xl p-6 md:p-10">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center mb-6">
-                <!-- From Language -->
-                <div class="md:col-span-1">
-                    <label for="from-lang" class="block text-sm font-medium text-gray-300 mb-2">From</label>
+        <!-- Translator UI -->
+        <div class="bg-gray-800 shadow-2xl rounded-2xl p-6 md:p-10">
+            
+            <!-- Language Selectors -->
+            <div class="flex items-center justify-between mb-4">
+                <!-- "From" Language -->
+                <div class="w-full">
+                    <label for="from-lang" class="block text-sm font-medium text-gray-300 mb-1">From</label>
                     <select id="from-lang" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                         <option value="EN">English</option>
                         <option value="NY">Nyanja (Chichewa)</option>
@@ -41,20 +63,18 @@
                 </div>
 
                 <!-- Swap Button -->
-                <div class="flex justify-center items-end h-full">
-                    <button id="swap-btn" class="p-3 bg-gray-700 rounded-full text-gray-300 hover:bg-gray-600 transition duration-150" title="Swap languages">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0l-3 3m3-3l3 3m7 8v12m0 0l-3-3m3 3l3-3" />
-                        </svg>
-                    </button>
-                </div>
+                <button id="swap-btn" class="mx-4 mt-6 p-2 bg-gray-700 rounded-full text-gray-400 hover:bg-gray-600 hover:text-white transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m4 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                </button>
 
-                <!-- To Language -->
-                <div class="md:col-span-1">
-                    <label for="to-lang" class="block text-sm font-medium text-gray-300 mb-2">To</label>
+                <!-- "To" Language -->
+                <div class="w-full">
+                    <label for="to-lang" class="block text-sm font-medium text-gray-300 mb-1">To</label>
                     <select id="to-lang" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="NY">Nyanja (Chichewa)</option>
                         <option value="EN">English</option>
-                        <option value="NY" selected>Nyanja (Chichewa)</option>
                         <option value="BM">Bemba (Ichibemba)</option>
                         <option value="TO">Tonga (Chitonga)</option>
                         <option value="LO">Lozi (Silozi)</option>
@@ -62,43 +82,45 @@
                 </div>
             </div>
 
-            <!-- Text Input -->
-            <div class="mb-6">
-                <label for="text-input" class="block text-sm font-medium text-gray-300 mb-2">Enter text...</label>
-                <textarea id="text-input" rows="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., The quick brown fox..."></textarea>
+            <!-- Input Text Area -->
+            <div class="mb-4">
+                <label for="input-text" class="sr-only">Enter text...</label>
+                <textarea id="input-text" rows="5" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter text..."></textarea>
             </div>
 
             <!-- Translate Button -->
             <button id="translate-btn" class="w-full bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition duration-150 flex items-center justify-center">
                 <svg id="translate-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m4 1h6m-6 2h6m-6 2h6m-6 2h6M9 21v-2m0 0l-2-2m2 2l2-2m-2-2h6M3 17h6M3 13h6m0 0v6m0-6h6m-6 0h6" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m4 13l4-4M19 17v-2a4 4 0 00-4-4H5s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H5m14 0a1 1 0 011 1v2a1 1 0 01-1 1h-2m-6 0a1 1 0 001-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 001 1h2z" />
                 </svg>
-                <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" style="display: none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg id="translate-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" style="display: none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
                 <span id="translate-btn-text">Translate</span>
             </button>
 
-            <!-- Translation Output -->
+            <!-- Output Text Area -->
             <div class="mt-6">
-                <label for="translation-output" class="block text-sm font-medium text-gray-300 mb-2">Translation</label>
-                <textarea id="translation-output" rows="5" class="w-full bg-gray-900 border border-gray-700 text-gray-400 rounded-lg p-3" readonly placeholder="Translation will appear here..."></textarea>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="output-text" class="block text-sm font-medium text-gray-300">Translation</label>
+                    <!-- NEW: Play Audio Button -->
+                    <button id="play-audio-btn" style="display: none;" class="text-indigo-400 hover:text-indigo-300 transition-all" title="Play pronunciation">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.902 11 4.234 11 4.707V19.293c0 .473-.317.805-.707.414L5.586 15z" />
+                        </svg>
+                    </button>
+                </div>
+                <textarea id="output-text" rows="5" class="w-full bg-gray-900 border border-gray-700 text-gray-300 rounded-lg p-3" placeholder="Translation will appear here..." readonly></textarea>
             </div>
-        </main>
+        </div>
 
         <footer class="text-center mt-8 text-gray-500">
-             <a href="https://lulimi-ccp-457527257985.africa-south1.run.app" id="contribute-btn" class="mb-6 inline-block bg-gray-700 text-white font-semibold py-2 px-5 rounded-lg hover:bg-gray-600 transition duration-150">
-                Contribute to Lulimi CCP
+            <a href="https://lulimi-ccp-457527257985.africa-south1.run.app/" id="contribute-btn" class="mb-6 inline-block bg-indigo-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-indigo-700 transition duration-150">
+                Help Us Improve &rarr;
             </a>
             <p class="text-sm">&copy; 2025 Lulimi Language Engine by Inwit Systems Ltd.</p>
             <p class="text-xs mt-1">Building bridges, one word at a time.</p>
-            <div class="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4 text-xs">
-                <a href="https://onelink.to/inwitapp" class="hover:text-indigo-400" target="_blank">Download Inwit App</a>
-                <a href="https://inwitsystems.com/radio/" class="hover:text-indigo-400" target="_blank">Inwit Online Radio</a>
-                <a href="https://inwitsystems.com/" class="hover:text-indigo-400" target="_blank">More From Inwit Systems</a>
-                <a href="https://inwit.tv/" class="hover:text-indigo-400" target="_blank">Stream Inwit TV</a>
-            </div>
         </footer>
     </div>
 
@@ -106,7 +128,7 @@
     <div id="error-modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4">
         <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
             <h3 id="modal-title" class="text-xl font-semibold text-white mb-4">Error</h3>
-            <p id="modal-message" class="text-gray-300 mb-6">Could not connect to translation service.</p>
+            <p id="modal-message" class="text-gray-300 mb-6">An error occurred.</p>
             <button id="modal-close-btn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150">
                 Close
             </button>
@@ -116,154 +138,241 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- FIX: Import signInWithCustomToken ---
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Configuration ---
         let db, auth;
         let validatedSentencesRef;
-        const appId = "default-app-id"; // Use default public app ID
-
-        // This is your *live* configuration for the deployed app on Cloud Run
+        let currentAudioUrl = null; // <-- NEW: Store audio URL
+        
         const firebaseConfig = {
             apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q",
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
             storageBucket: "lulimi-ccp-project.appspot.com",
-            // Note: MessagingSenderId and AppId are not needed for this app
         };
         
-        // This is the config for the *secure Canvas environment*
         const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : null;
+            
+        // --- FIX: Use a consistent App ID for both canvas and production
+        // This ensures the translator always reads from the same database.
+        const appId = 'default-app-id';
+
+        // --- UI Elements ---
+        const fromLang = document.getElementById('from-lang');
+        const toLang = document.getElementById('to-lang');
+        const swapBtn = document.getElementById('swap-btn');
+        const inputText = document.getElementById('input-text');
+        const outputText = document.getElementById('output-text');
+        const translateBtn = document.getElementById('translate-btn');
+        const playAudioBtn = document.getElementById('play-audio-btn'); // <-- NEW
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Check if we are in the secure Canvas environment or on the live URL
                 const isCanvas = !!canvasFirebaseConfig;
+                // --- FIX: Use correct config variable ---
                 let activeConfig = isCanvas ? canvasFirebaseConfig : firebaseConfig;
 
-                if (!activeConfig || !activeConfig.projectId) {
-                    throw new Error("Firebase config is missing or invalid.");
-                }
-                
-                if (isCanvas) {
-                    console.log("Initializing with secure Canvas config.");
-                } else {
-                    console.log("Initializing with public production config.");
+                // --- FIX: Check projectId on the *active* config ---
+                if (!activeConfig || !activeConfig.projectId) { // <-- TYPO WAS HERE
+                    const id = isCanvas ? (appId || "App ID") : (activeConfig.projectId || "Project ID");
+                    throw new Error(`${id} is missing. The app cannot start.`);
                 }
 
                 const app = initializeApp(activeConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                // Define the public collection path
-                const collectionPath = `artifacts/${appId}/public/data/validated_sentences`;
-                validatedSentencesRef = collection(db, collectionPath);
-
-                // Authenticate the user
-                await signInAnonymously(auth);
-                console.log("Anonymous sign-in successful.");
-
-                // Hide modal on init
-                hideModal();
+                // --- FIX: Use the consistent appId variable ---
+                validatedSentencesRef = collection(db, `artifacts/${appId}/public/data/validated_sentences`);
+                
+                // --- FIX: Handle auth differently for canvas vs. production ---
+                if (isCanvas && typeof __initial_auth_token !== 'undefined') {
+                    // We are in the canvas, use the provided token
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Canvas sign-in successful.");
+                } else if (!isCanvas) {
+                    // We are on the live site, sign in anonymously
+                    await signInAnonymously(auth);
+                    console.log("Anonymous sign-in successful.");
+                } else {
+                    // We are in Canvas, but the token is missing for some reason
+                    // Still attempt anonymous sign-in
+                    await signInAnonymously(auth);
+                    console.log("Canvas token missing, attempting anonymous sign-in.");
+                }
+                
+                // --- Event Listeners ---
+                translateBtn.addEventListener('click', handleTranslation);
+                swapBtn.addEventListener('click', swapLanguages);
+                document.getElementById('modal-close-btn').addEventListener('click', hideModal);
+                playAudioBtn.addEventListener('click', playPronunciation); // <-- NEW
 
             } catch (error) {
-                console.error("Anonymous sign-in failed:", error);
-                showModal("Auth Error", "Could not connect to translation service.");
+                console.error("Initialization failed:", error);
+                showModal("Connection Error", "Could not connect to translation service. " + error.message);
             }
-
-            // --- Event Listeners ---
-            document.getElementById('translate-btn').addEventListener('click', handleTranslate);
-            document.getElementById('modal-close-btn').addEventListener('click', hideModal);
-            document.getElementById('swap-btn').addEventListener('click', swapLanguages);
         });
 
-        // --- Core Translation Logic ---
-        async function handleTranslate() {
+        // --- Translation Logic (UPDATED) ---
+        async function handleTranslation() {
             setLoading(true);
-            const fromLang = document.getElementById('from-lang').value;
-            const toLang = document.getElementById('to-lang').value;
-            const textToTranslate = document.getElementById('text-input').value.trim();
+            outputText.value = "Translating...";
+            playAudioBtn.style.display = 'none'; // <-- NEW: Hide button on new translation
+            currentAudioUrl = null;
 
-            // *** FIX: Normalize text to lowercase for case-insensitive search ***
-            const normalizedText = textToTranslate.toLowerCase();
+            const from = fromLang.value;
+            const to = toLang.value;
+            const text = inputText.value.trim();
+            const searchText = text.toLowerCase();
 
-            const outputEl = document.getElementById('translation-output');
-            
-            if (!normalizedText) {
-                outputEl.value = "Please enter text to translate.";
+            if (!searchText) {
+                outputText.value = "Please enter text to translate.";
                 setLoading(false);
                 return;
             }
 
             try {
-                const result = await performTranslation(normalizedText, fromLang, toLang);
-                outputEl.value = result;
+                let result = "Translation not found. Our database is still growing!";
+                let docData = null; // <-- NEW: Store the whole doc
+                
+                if (from === to) {
+                    result = text;
+                } else if (from === 'EN') {
+                    // Direct: English -> Zambian
+                    docData = await findDoc(searchText, 'english');
+                    if (docData) {
+                        result = docData[getLanguageField(to)];
+                    }
+                } else if (to === 'EN') {
+                    // Direct: Zambian -> English
+                    docData = await findDoc(searchText, getLanguageField(from));
+                    if (docData) {
+                        result = docData['english'];
+                    }
+                } else {
+                    // Pivot: Zambian -> English -> Zambian
+                    const pivotDoc = await findDoc(searchText, getLanguageField(from));
+                    
+                    if (pivotDoc && pivotDoc.english) {
+                        // We found an English pivot, now find the target language
+                        docData = await findDoc(pivotDoc.english, 'english');
+                        if (docData) {
+                            result = docData[getLanguageField(to)];
+                        }
+                    }
+                }
+
+                outputText.value = result || "Translation not found. Our database is still growing!";
+                
+                // --- NEW: Audio Playback Logic ---
+                // We check the *final* document (docData) for the URL
+                if (docData && docData.pronunciationURL) {
+                    currentAudioUrl = docData.pronunciationURL;
+                    playAudioBtn.style.display = 'block';
+                }
+
             } catch (error) {
-                console.error("Translation error:", error);
-                outputEl.value = "Error: Could not perform translation.";
+                console.error("Translation Error:", error);
+                outputText.value = "An error occurred during translation.";
             } finally {
                 setLoading(false);
             }
         }
 
-        async function performTranslation(normalizedText, fromLang, toLang) {
-            const outputNotFound = "Translation not found. Our database is still growing!";
-            const sourceLangField = getLanguageField(fromLang);
-            const targetLangField = getLanguageField(toLang);
-
-            // Case 1: Direct Translation (e.g., Nyanja -> English or English -> Nyanja)
-            if (fromLang === 'EN' || toLang === 'EN') {
-                const q = query(
-                    validatedSentencesRef,
-                    where(sourceLangField, "==", normalizedText),
-                    limit(1)
-                );
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    return outputNotFound;
+        /**
+         * Finds a document in the 'validated_sentences' collection.
+         * Returns the document's data object or null if not found.
+         */
+        async function findDoc(text, searchField) {
+            try {
+                let docSnap;
+                
+                if (searchField === 'english') {
+                    // We can do a direct lookup by document ID
+                    const docRef = doc(validatedSentencesRef, text);
+                    docSnap = await getDoc(docRef);
+                } else {
+                    // We must query the collection
+                    const q = query(validatedSentencesRef, where(searchField, "==", text), limit(1));
+                    const querySnapshot = await getDocs(q);
+                    if (!querySnapshot.empty) {
+                        docSnap = querySnapshot.docs[0];
+                    }
                 }
-                const docData = querySnapshot.docs[0].data();
-                return docData[targetLangField] || outputNotFound;
+
+                if (docSnap && docSnap.exists()) {
+                    return docSnap.data(); // Return the whole data object
+                }
+                
+                return null; // Return null if not found
+
+            } catch (error) {
+                console.error(`Firestore query failed: ${error.message}`);
+                // --- FIX: Show the *actual* Firebase error ---
+                if (error.code === 'failed-precondition') {
+                     showModal("Database Error", "The query requires a database index that hasn't been created yet. Please check the console for a link to create it.");
+                } else {
+                     showModal("Database Error", `Error searching database. (${error.code})`);
+                }
+                return null;
             }
-
-            // Case 2: Pivot Translation (e.g., Nyanja -> English -> Bemba)
-            // Step 1: Source Language to English
-            const pivotQ1 = query(
-                validatedSentencesRef,
-                where(sourceLangField, "==", normalizedText),
-                limit(1)
-            );
-            const pivotSnap1 = await getDocs(pivotQ1);
-
-            if (pivotSnap1.empty) {
-                return outputNotFound;
+        }
+        
+        // --- NEW: Audio Playback Function ---
+        function playPronunciation() {
+            if (currentAudioUrl) {
+                try {
+                    const audio = new Audio(currentAudioUrl);
+                    audio.play();
+                } catch (error) {
+                    console.error("Error playing audio:", error);
+                    showModal("Audio Error", "Could not play the audio file.");
+                }
             }
-            const pivotResult = pivotSnap1.docs[0].data().english;
-
-            if (!pivotResult) {
-                return outputNotFound; // No English pivot translation found
-            }
-
-            // Step 2: English to Target Language
-            const pivotQ2 = query(
-                validatedSentencesRef,
-                where("english", "==", pivotResult), // We assume the pivot result ("english") is already normalized in the DB
-                limit(1)
-            );
-            const pivotSnap2 = await getDocs(pivotQ2);
-
-            if (pivotSnap2.empty) {
-                return outputNotFound;
-            }
-            const finalData = pivotSnap2.docs[0].data();
-            return finalData[targetLangField] || outputNotFound;
         }
 
+        // --- UI & Helper Functions ---
+        function swapLanguages() {
+            const fromVal = fromLang.value;
+            const toVal = toLang.value;
+            fromLang.value = toVal;
+            toLang.value = fromVal;
+            
+            const inputVal = inputText.value;
+            const outputVal = outputText.value;
+            
+            if (!outputVal.startsWith("Translation not found") && !outputVal.startsWith("Error")) {
+                 inputText.value = outputVal;
+                 outputText.value = inputVal;
+                 playAudioBtn.style.display = 'none'; // Hide audio button after swap
+                 currentAudioUrl = null;
+            }
+        }
+        
+        function setLoading(isLoading) {
+            document.getElementById('translate-btn-text').style.display = isLoading ? 'none' : 'inline';
+            document.getElementById('translate-icon').style.display = isLoading ? 'none' : 'inline';
+            document.getElementById('translate-spinner').style.display = isLoading ? 'inline-block' : 'none';
+            document.getElementById('translate-btn').disabled = isLoading;
+        }
+
+        function showModal(title, message) {
+            console.log(`Modal Shown: ${title} - ${message}`);
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message || "An error occurred.";
+            document.getElementById('error-modal').classList.add('flex');
+        }
+
+        function hideModal() {
+            document.getElementById('error-modal').classList.remove('flex');
+        }
+        
         function getLanguageField(langCode) {
             switch (langCode) {
                 case 'NY': return 'nyanja';
@@ -274,34 +383,6 @@
                 default: throw new Error(`Unknown language code: ${langCode}`);
             }
         }
-
-        function swapLanguages() {
-            const fromSelect = document.getElementById('from-lang');
-            const toSelect = document.getElementById('to-lang');
-            const fromVal = fromSelect.value;
-            const toVal = toSelect.value;
-            fromSelect.value = toVal;
-            toSelect.value = fromVal;
-        }
-
-        // --- UI Helpers ---
-        function setLoading(isLoading) {
-            document.getElementById('translate-btn-text').style.display = isLoading ? 'none' : 'inline';
-            document.getElementById('translate-icon').style.display = isLoading ? 'none' : 'inline';
-            document.getElementById('loading-spinner').style.display = isLoading ? 'inline-block' : 'none';
-            document.getElementById('translate-btn').disabled = isLoading;
-        }
-
-        function showModal(title, message) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            document.getElementById('error-modal').classList.add('flex');
-        }
-
-        function hideModal() {
-            document.getElementById('error-modal').classList.remove('flex');
-        }
-
     </script>
 </body>
 </html>
