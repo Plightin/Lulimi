@@ -42,11 +42,12 @@
 
     <div class="w-full max-w-4xl">
         <header class="text-center mb-8">
-            <!-- SVG Logo -->
-            <svg class="h-16 w-16 mx-auto mb-4 text-indigo-400" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M74 56L26 100M26 100L74 144M26 100H122" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M126 56L174 100M174 100L126 144M174 100H78" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <!-- SVG Logo REPLACED with Image Logo -->
+            <img src="https://storage.googleapis.com/lulimi-ccp-project.firebasestorage.app/lulimi_logo.png" alt="Lulimi Logo" class="h-20 w-auto mx-auto mb-4"
+                 onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
+            <!-- Fallback text if logo fails to load -->
+            <h1 id="logo-fallback" class="text-4xl font-bold text-white mb-2" style="display: none;">Lulimi CCP</h1>
+
             <h1 class="text-4xl font-bold text-white mb-2">Lulimi CCP</h1>
             <p class="text-lg text-gray-400">Community Contribution Platform</p>
         </header>
@@ -210,7 +211,7 @@
                 <a href="https://onelink.to/inwitapp" class="hover:text-indigo-400" target="_blank">Download Inwit App</a>
                 <a href="https://inwitsystems.com/radio/" class="hover:text-indigo-400" target="_blank">Inwit Online Radio</a>
                 <a href="https://inwitsystems.com/" class="hover:text-indigo-400" target="_blank">More From Inwit Systems</a>
-                <a href="https://inwit.tv/" class="hover:text-indigo-400" target="_blank">Stream Inwit TV</a>
+                <a href="https://inw.tv/" class="hover:text-indigo-400" target="_blank">Stream Inwit TV</a>
             </div>
         </footer>
     </div>
@@ -345,7 +346,8 @@
 
                 onAuthStateChanged(auth, handleAuthStateChange);
 
-                // --- Event Listeners ---
+                // --- Event Listeners (FIXED) ---
+                // Removed inline onclick attributes and added proper listeners
                 submitBtn.addEventListener('click', submitContribution);
                 validatorSigninBtn.addEventListener('click', signInWithGoogle);
                 signoutBtn.addEventListener('click', logOut);
