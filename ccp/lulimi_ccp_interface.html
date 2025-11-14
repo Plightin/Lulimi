@@ -22,6 +22,20 @@
         .modal.flex {
             display: flex;
         }
+        /* Audio recorder button pulsing */
+        .record-btn-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: .75;
+                transform: scale(1.05);
+            }
+        }
     </style>
 </head>
 <body class="h-full flex items-center justify-center bg-gray-900 text-gray-200 p-4">
@@ -50,7 +64,6 @@
 
         <!-- Tabs -->
         <div class="mb-8 border-b border-gray-700 flex justify-center">
-            <!-- FIX: Removed onclick attributes -->
             <button id="tab-contribute" class="tab-btn active">Contribute New Data</button>
             <button id="tab-validate" class="tab-btn" style="display: none;">Validate Submissions</button>
         </div>
@@ -95,60 +108,95 @@
 
         <!-- Validate Tab Content -->
         <div id="validate-content" class="bg-gray-800 shadow-2xl rounded-2xl p-6 md:p-10" style="display: none;">
-            <p class="text-center text-gray-300 mb-6">Help us maintain quality by validating submissions. Approve correct translations, suggest corrections, or reject incorrect ones.</p>
             
-            <div id="validation-card" class="bg-gray-900 border border-gray-700 rounded-lg p-6 min-h-[200px] flex flex-col justify-center">
-                <!-- Loading State -->
-                <div id="validation-loading" class="text-center text-gray-400">
-                    <svg class="animate-spin h-8 w-8 text-indigo-400 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Loading next submission...
-                </div>
+            <!-- Step 1: Validation Card -->
+            <div id="validation-step">
+                <p class="text-center text-gray-300 mb-6">Help us maintain quality by validating submissions. Approve correct translations, suggest corrections, or reject incorrect ones.</p>
                 
-                <!-- Empty State -->
-                <div id="validation-empty" class="text-center text-gray-400" style="display: none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <h3 class="text-xl font-semibold text-white">All Clear!</h3>
-                    <p>There are no submissions to validate right now. Thank you!</p>
-                </div>
-
-                <!-- Data State -->
-                <div id="validation-data" style="display: none;">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-400">English Sentence</label>
-                        <p id="validation-english" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
-                    </div>
-                    <div>
-                        <label id="validation-lang-label" class="block text-sm font-medium text-gray-400">Zambian Language Translation</label>
-                        <p id="validation-zambian" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
+                <div id="validation-card" class="bg-gray-900 border border-gray-700 rounded-lg p-6 min-h-[200px] flex flex-col justify-center">
+                    <!-- Loading State -->
+                    <div id="validation-loading" class="text-center text-gray-400">
+                        <svg class="animate-spin h-8 w-8 text-indigo-400 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Loading next submission...
                     </div>
                     
-                    <!-- Correction Input (hidden by default) -->
-                    <div id="correction-input-area" class="mt-4" style="display: none;">
-                        <label for="correction-text" class="block text-sm font-medium text-gray-300">Your Correction:</label>
-                        <textarea id="correction-text" rows="3" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 mt-1 focus:ring-2 focus:ring-indigo-500"></textarea>
-                        <button id="submit-correction-btn" class="w-full mt-2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150">
-                            Submit Correction
-                        </button>
+                    <!-- Empty State -->
+                    <div id="validation-empty" class="text-center text-gray-400" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-600 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <h3 class="text-xl font-semibold text-white">All Clear!</h3>
+                        <p>There are no submissions to validate right now. Thank you!</p>
+                    </div>
+
+                    <!-- Data State -->
+                    <div id="validation-data" style="display: none;">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-400">English Sentence</label>
+                            <p id="validation-english" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
+                        </div>
+                        <div>
+                            <label id="validation-lang-label" class="block text-sm font-medium text-gray-400">Zambian Language Translation</label>
+                            <p id="validation-zambian" class="text-lg text-white p-3 bg-gray-800 rounded-md"></p>
+                        </div>
+                        
+                        <!-- Correction Input (hidden by default) -->
+                        <div id="correction-input-area" class="mt-4" style="display: none;">
+                            <label for="correction-text" class="block text-sm font-medium text-gray-300">Your Correction:</label>
+                            <textarea id="correction-text" rows="3" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 mt-1 focus:ring-2 focus:ring-indigo-500"></textarea>
+                            <button id="submit-correction-btn" class="w-full mt-2 bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-150">
+                                Submit Correction
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Validation Buttons -->
-            <div id="validation-buttons" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" style="display: none;">
-                <button id="reject-btn" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 transition duration-150">
-                    Reject
-                </button>
-                <button id="correct-btn" class="bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg hover:bg-yellow-600 transition duration-150">
-                    Suggest Correction
-                </button>
-                <button id="approve-btn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-150">
-                    Approve
-                </button>
+                <!-- Validation Buttons -->
+                <div id="validation-buttons" class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6" style="display: none;">
+                    <button id="reject-btn" class="bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 transition duration-150">
+                        Reject
+                    </button>
+                    <button id="correct-btn" class="bg-yellow-500 text-gray-900 font-semibold py-3 px-6 rounded-lg hover:bg-yellow-600 transition duration-150">
+                        Suggest Correction
+                    </button>
+                    <button id="approve-btn" class="bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-150">
+                        Approve
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Audio Recorder (New) -->
+            <div id="audio-recorder-area" class="text-center" style="display: none;">
+                <h3 class="text-xl font-semibold text-white mb-2">Pronunciation successfully validated!</h3>
+                <p class="text-gray-300 mb-6">Please record a high-quality audio clip for this translation:</p>
+                <p id="audio-text-to-record" class="text-2xl font-bold text-indigo-300 mb-6 p-4 bg-gray-900 rounded-lg"></p>
+                
+                <div class="bg-gray-900 border border-gray-700 rounded-lg p-6">
+                    <!-- Audio Player -->
+                    <audio id="audio-playback" controls class="w-full mb-4" style="display: none;"></audio>
+
+                    <!-- Record/Stop Buttons -->
+                    <button id="record-btn" class="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-700 transition duration-150 flex items-center justify-center text-lg record-btn-pulse">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="2" /></svg>
+                        Start Recording
+                    </button>
+                    <button id="stop-btn" class="w-full bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-600 transition duration-150" style="display: none;">
+                        Stop Recording
+                    </button>
+                </div>
+
+                <!-- Finalize Buttons -->
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button id="skip-audio-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-gray-700 transition duration-150">
+                        Skip Audio & Continue
+                    </button>
+                    <button id="save-audio-btn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition duration-150" disabled>
+                        Save & Continue
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -188,7 +236,7 @@
             GoogleAuthProvider,
             signInWithPopup,
             signOut,
-            signInWithCustomToken // <-- FIX: Added custom token import
+            signInWithCustomToken
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { 
             getFirestore, 
@@ -205,9 +253,16 @@
             serverTimestamp,
             increment
         } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- NEW: Import Firebase Storage ---
+        import { 
+            getStorage, 
+            ref, 
+            uploadBytes, 
+            getDownloadURL 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- Configuration ---
-        let db, auth;
+        let db, auth, storage; // <-- NEW: Added storage
         let unvalidatedSentencesRef, usersRef;
         let currentValidationDoc = null;
         let currentUserId = null;
@@ -215,15 +270,19 @@
         let isCanvas = false;
         let appId = 'default-app-id';
         
-        // This is your *live* configuration for the deployed app on Cloud Run
+        // --- NEW: Audio Recorder variables ---
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob = null;
+        let validatedDocDataToPromote = null; // Temp holder for doc data
+
         const firebaseConfig = {
             apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q",
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
-            storageBucket: "lulimi-ccp-project.appspot.com",
+            storageBucket: "lulimi-ccp-project.appspot.com", // <-- Storage bucket must be defined
         };
         
-        // This is the config for the *secure Canvas environment*
         const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : null;
@@ -232,7 +291,6 @@
             isCanvas = true;
             appId = __app_id;
         }
-
 
         // --- UI Elements ---
         const validatorSigninBtn = document.getElementById('validator-signin-btn');
@@ -243,10 +301,20 @@
         const tabValidateBtn = document.getElementById('tab-validate');
         const submitBtn = document.getElementById('submit-contribution-btn');
 
+        // --- NEW: Audio UI Elements ---
+        const validationStepDiv = document.getElementById('validation-step');
+        const audioRecorderArea = document.getElementById('audio-recorder-area');
+        const audioTextToRecord = document.getElementById('audio-text-to-record');
+        const recordBtn = document.getElementById('record-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const audioPlayback = document.getElementById('audio-playback');
+        const saveAudioBtn = document.getElementById('save-audio-btn');
+        const skipAudioBtn = document.getElementById('skip-audio-btn');
+
+
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // FIX: Check for __firebase_config to determine environment
                 let activeConfig;
 
                 if (isCanvas) {
@@ -258,20 +326,23 @@
                 }
 
                 if (!activeConfig || !activeConfig.projectId) {
-                    // This will catch the "App ID is missing" error if in Canvas
                     const id = isCanvas ? (appId || "App ID") : (activeConfig.projectId || "Project ID");
                     throw new Error(`${id} is missing. The app cannot start.`);
+                }
+                
+                // --- NEW: Check for storageBucket ---
+                if (!activeConfig.storageBucket) {
+                    throw new Error("storageBucket is missing from Firebase config. Cannot initialize audio features.");
                 }
                 
                 const app = initializeApp(activeConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                storage = getStorage(app); // <-- NEW: Initialize Storage
 
-                // Define collection paths
                 unvalidatedSentencesRef = collection(db, `artifacts/${appId}/public/data/unvalidated_sentences`);
-                usersRef = collection(db, `artifacts/${appId}/users`); // Private user roles
+                usersRef = collection(db, `artifacts/${appId}/users`); 
 
-                // Listen for auth state changes
                 onAuthStateChanged(auth, handleAuthStateChange);
 
                 // --- Event Listeners ---
@@ -279,17 +350,21 @@
                 validatorSigninBtn.addEventListener('click', signInWithGoogle);
                 signoutBtn.addEventListener('click', logOut);
                 
-                // FIX: Added proper event listeners for tabs
                 tabContributeBtn.addEventListener('click', () => switchTab('contribute'));
                 tabValidateBtn.addEventListener('click', () => switchTab('validate'));
                 
                 document.getElementById('modal-close-btn').addEventListener('click', hideModal);
                 
-                // Validation button listeners
                 document.getElementById('approve-btn').addEventListener('click', () => handleValidation('approve'));
                 document.getElementById('reject-btn').addEventListener('click', () => handleValidation('reject'));
                 document.getElementById('correct-btn').addEventListener('click', toggleCorrectionMode);
                 document.getElementById('submit-correction-btn').addEventListener('click', submitCorrection);
+
+                // --- NEW: Audio Event Listeners ---
+                recordBtn.addEventListener('click', startRecording);
+                stopBtn.addEventListener('click', stopRecording);
+                saveAudioBtn.addEventListener('click', saveAudioAndProceed);
+                skipAudioBtn.addEventListener('click', skipAudioAndProceed);
 
             } catch (error) {
                 console.error("Initialization failed:", error);
@@ -297,46 +372,32 @@
             }
         });
 
-        // --- Authentication ---
+        // --- Authentication (No Changes) ---
         async function handleAuthStateChange(user) {
             if (user) {
-                // User is signed in
                 currentUserId = user.uid;
-                
                 if (user.isAnonymous) {
-                    // ANONYMOUS USER (Contributor)
                     currentUserRole = "contributor (anonymous)";
                     updateUIAforUser(null, currentUserRole);
-                    
                 } else {
-                    // GOOGLE USER or CANVAS USER (Potential Validator)
                     const userDocRef = doc(usersRef, user.uid);
                     let userDoc = await getDoc(userDocRef);
-
                     if (!userDoc.exists()) {
-                        // Create profile for new Google user
-                        // Note: Canvas users might not have an email
                         const newUser = {
                             email: user.email || "Canvas User",
                             role: "contributor",
                             createdAt: serverTimestamp()
                         };
                         await setDoc(userDocRef, newUser);
-                        userDoc = await getDoc(userDocRef); // Re-fetch doc
+                        userDoc = await getDoc(userDocRef);
                     }
-                    
                     currentUserRole = userDoc.data().role || "contributor";
                     updateUIAforUser(user, currentUserRole);
                 }
-                
                 console.log(`User is authenticated: ${currentUserId}`);
                 console.log(`User role: ${currentUserRole}`);
-
             } else {
-                // User is signed out.
-                // FIX: Handle Canvas auth vs. Live auth
                 if (isCanvas && typeof __initial_auth_token !== 'undefined') {
-                    // Use the secure token provided by the Canvas environment
                     console.log("Canvas environment detected. Signing in with custom token...");
                     try {
                         await signInWithCustomToken(auth, __initial_auth_token);
@@ -345,7 +406,6 @@
                          showModal("Auth Error", "Could not authenticate user in Canvas. " + error.message);
                     }
                 } else if (!isCanvas) {
-                    // Live environment, sign them in anonymously
                     console.log("Live environment. Attempting anonymous sign-in...");
                     try {
                         await signInAnonymously(auth);
@@ -362,23 +422,19 @@
 
         function updateUIAforUser(user, role) {
             if (user && !user.isAnonymous) {
-                // Logged-in Google user or Canvas User
                 userEmailSpan.textContent = user.email || "Canvas User";
                 userInfoDiv.style.display = 'block';
                 validatorSigninBtn.style.display = 'none';
-                
                 if (role === 'validator') {
                     tabValidateBtn.style.display = 'block';
                 } else {
                     tabValidateBtn.style.display = 'none';
                 }
             } else {
-                // Anonymous user
                 userInfoDiv.style.display = 'none';
                 validatorSigninBtn.style.display = 'block';
                 tabValidateBtn.style.display = 'none';
             }
-            // Ensure contribute tab is active if validate is hidden
             if (tabValidateBtn.style.display === 'none' && tabValidateBtn.classList.contains('active')) {
                 switchTab('contribute');
             }
@@ -388,7 +444,6 @@
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
-                // Auth state change will be handled by onAuthStateChanged
             } catch (error) {
                 console.error("Google Sign-In failed:", error);
                 showModal("Sign-In Error", "Could not sign in with Google. See console.");
@@ -398,14 +453,12 @@
         async function logOut() {
             try {
                 await signOut(auth);
-                // Auth state change will sign user in anonymously (if on live) 
-                // or with custom token (if in canvas)
             } catch (error) {
                 console.error("Sign out failed:", error);
             }
         }
 
-        // --- Contribution Logic ---
+        // --- Contribution Logic (No Changes) ---
         async function submitContribution() {
             setLoading('submit', true);
             const englishSentence = document.getElementById('english-sentence').value.trim();
@@ -419,7 +472,6 @@
                 return;
             }
 
-            // *** FIX: Normalize text to lowercase for case-insensitive search ***
             const normalizedEnglish = englishSentence.toLowerCase();
             const normalizedZambian = zambianTranslation.toLowerCase();
 
@@ -434,7 +486,6 @@
                 };
                 await addDoc(unvalidatedSentencesRef, docData);
                 
-                // Clear inputs
                 document.getElementById('english-sentence').value = '';
                 document.getElementById('zambian-translation').value = '';
                 
@@ -448,15 +499,14 @@
             }
         }
 
-        // --- Validation Logic ---
+        // --- Validation Logic (UPDATED) ---
         async function loadNextValidationDoc() {
+            // --- NEW: Ensure recorder is hidden ---
+            validationStepDiv.style.display = 'block';
+            audioRecorderArea.style.display = 'none';
+            
             setValidationState('loading');
             try {
-                // Get one document that has not been validated by the current user
-                // Firestore doesn't support "not-in" queries on arrays effectively for this
-                // A more robust solution would be a Cloud Function, but for simplicity:
-                // We fetch one document.
-                
                 const q = query(unvalidatedSentencesRef, limit(1));
                 const querySnapshot = await getDocs(q);
 
@@ -468,24 +518,18 @@
                 const docSnap = querySnapshot.docs[0];
                 const docData = docSnap.data();
                 
-                // Check if lang field exists
                 if (!docData.lang) {
                     console.warn("Skipping document with missing 'lang' field:", docSnap.id);
-                    // Delete this malformed doc
                     await deleteDoc(doc(unvalidatedSentencesRef, docSnap.id));
-                    // Try loading the next one
                     loadNextValidationDoc();
                     return;
                 }
                 
                 const langField = getLanguageField(docData.lang);
                 
-                // Check if language field data exists
                 if (!docData[langField]) {
                     console.warn(`Skipping document with missing '${langField}' data:`, docSnap.id);
-                    // Delete this malformed doc
                     await deleteDoc(doc(unvalidatedSentencesRef, docSnap.id));
-                    // Try loading the next one
                     loadNextValidationDoc();
                     return;
                 }
@@ -496,7 +540,6 @@
                     langField: langField
                 };
 
-                // Display the data
                 document.getElementById('validation-english').textContent = docData.english;
                 document.getElementById('validation-zambian').textContent = docData[langField];
                 document.getElementById('validation-lang-label').textContent = `${getLanguageName(docData.lang)} Translation`;
@@ -506,145 +549,241 @@
             } catch (error) {
                 console.error("Error fetching validation doc: ", error);
                 showModal("Error", "Could not fetch the next document for validation.");
-                // We will set to empty to avoid an infinite loop
                 setValidationState('empty');
             }
         }
 
         async function handleValidation(action) {
             if (!currentValidationDoc) return;
-
             const docRef = doc(unvalidatedSentencesRef, currentValidationDoc.id);
 
             try {
                 if (action === 'approve') {
-                    // Increment approval count.
-                    // A Cloud Function would be better to check for 3 approvals and move the doc.
-                    // For now, we'll just increment. If it hits 3, we move it.
-                    
                     const newApprovals = (currentValidationDoc.data.approvals || 0) + 1;
-
                     if (newApprovals >= 3) {
-                        // Promote to validated collection
-                        await promoteToValidated(currentValidationDoc.id, currentValidationDoc.data);
-                        showModal("Submission Promoted!", "This submission has reached 3 approvals and has been validated.");
+                        // --- NEW: Trigger audio recording step ---
+                        const approvedData = { ...currentValidationDoc.data };
+                        // Ensure all text is lowercase before moving to audio step
+                        approvedData.english = (approvedData.english || "").toLowerCase();
+                        approvedData[currentValidationDoc.langField] = (approvedData[currentValidationDoc.langField] || "").toLowerCase();
+                        
+                        promptForAudio(approvedData);
                     } else {
-                        // Just update the count
-                        await updateDoc(docRef, {
-                            approvals: increment(1)
-                        });
+                        // Just update the count and load next doc
+                        await updateDoc(docRef, { approvals: increment(1) });
+                        loadNextValidationDoc();
                     }
-
                 } else if (action === 'reject') {
-                    // Delete the unvalidated document
+                    // Delete the unvalidated document and load next
                     await deleteDoc(docRef);
+                    loadNextValidationDoc();
                 }
-                
-                // Load the next document
-                loadNextValidationDoc();
-
             } catch (error) {
                 console.error(`Error during ${action}: `, error);
                 showModal("Error", `Could not ${action} the submission.`);
             }
         }
-
-        async function toggleCorrectionMode() {
-            const correctionArea = document.getElementById('correction-input-area');
-            const validationText = document.getElementById('validation-zambian');
-            
-            if (correctionArea.style.display === 'none') {
-                // Show correction box
-                correctionArea.style.display = 'block';
-                document.getElementById('correction-text').value = validationText.textContent;
-                document.getElementById('correct-btn').textContent = "Cancel Correction";
-                // Hide other buttons
-                document.getElementById('approve-btn').style.display = 'none';
-                document.getElementById('reject-btn').style.display = 'none';
-            } else {
-                // Hide correction box
-                correctionArea.style.display = 'none';
-                document.getElementById('correct-btn').textContent = "Suggest Correction";
-                // Show other buttons
-                document.getElementById('approve-btn').style.display = 'inline-block';
-                document.getElementById('reject-btn').style.display = 'inline-block';
-            }
-        }
         
         async function submitCorrection() {
             if (!currentValidationDoc) return;
-            
             const correctionText = document.getElementById('correction-text').value.trim();
             if (!correctionText) {
                 showModal("Error", "Correction text cannot be empty.");
                 return;
             }
-
-            // *** FIX: Normalize text to lowercase for case-insensitive search ***
             const normalizedCorrection = correctionText.toLowerCase();
 
             try {
-                // A correction from a validator is considered "gold standard"
-                // We will create a new docData object with the correction
-                const docData = {
+                // A correction from a validator is "gold standard"
+                const correctedData = {
                     ...currentValidationDoc.data,
                     [currentValidationDoc.langField]: normalizedCorrection,
-                    // Ensure all other language fields are also lowercase
                     english: (currentValidationDoc.data.english || "").toLowerCase(),
-                    nyanja: (currentValidationDoc.data.nyanja || "").toLowerCase(),
-                    bemba: (currentValidationDoc.data.bemba || "").toLowerCase(),
-                    tonga: (currentValidationDoc.data.tonga || "").toLowerCase(),
-                    lozi: (currentValidationDoc.data.lozi || "").toLowerCase(),
-                    
                     validatedBy: currentUserId,
                     validatedAt: serverTimestamp()
                 };
 
-                // Promote this corrected data to the validated collection
-                await promoteToValidated(currentValidationDoc.id, docData);
-
-                showModal("Correction Submitted!", "Your correction has been approved and the submission is now validated.");
-                
-                // Reset correction mode
-                toggleCorrectionMode();
-                // Load next doc
-                loadNextValidationDoc();
+                // --- NEW: Trigger audio recording step ---
+                promptForAudio(correctedData);
+                toggleCorrectionMode(); // Hide correction box
 
             } catch (error) {
                 console.error("Error submitting correction: ", error);
                 showModal("Error", "Could not submit your correction.");
             }
         }
-
-        async function promoteToValidated(originalDocId, docData) {
-            // 1. Create a new doc in 'validated_sentences'
-            // We'll use the english text (normalized) as the ID to prevent duplicates
-            // A hash might be better, but this is simpler
+        
+        // --- NEW: Audio Recording Flow ---
+        
+        function promptForAudio(validatedData) {
+            // Store the data that will be promoted
+            validatedDocDataToPromote = validatedData; 
             
-            // *** FIX: Ensure English text is normalized before using as ID ***
+            // Show the text to be recorded
+            const textToRecord = validatedData[currentValidationDoc.langField];
+            audioTextToRecord.textContent = `"${textToRecord}"`;
+            
+            // Reset audio state
+            audioBlob = null;
+            audioChunks = [];
+            audioPlayback.style.display = 'none';
+            audioPlayback.src = '';
+            saveAudioBtn.disabled = true;
+            recordBtn.style.display = 'block';
+            recordBtn.classList.add('record-btn-pulse');
+            stopBtn.style.display = 'none';
+            
+            // Switch views
+            validationStepDiv.style.display = 'none';
+            audioRecorderArea.style.display = 'block';
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(audioChunks, { type: 'audio/mp3' }); // Using mp3, though webm or ogg might be more standard
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioPlayback.style.display = 'block';
+                    saveAudioBtn.disabled = false;
+                    audioChunks = []; // Clear chunks for next recording
+                };
+                
+                mediaRecorder.start();
+                
+                // Update UI
+                recordBtn.style.display = 'none';
+                recordBtn.classList.remove('record-btn-pulse');
+                stopBtn.style.display = 'block';
+                
+            } catch (error) {
+                console.error("Error accessing microphone:", error);
+                showModal("Microphone Error", "Could not access your microphone. Please grant permission in your browser.");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                // Update UI
+                recordBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+            }
+        }
+
+        async function saveAudioAndProceed() {
+            if (!audioBlob || !validatedDocDataToPromote) return;
+            
+            setLoading('audioSave', true); // Implement this
+            
+            const englishText = validatedDocDataToPromote.english;
+            const langCode = validatedDocDataToPromote.lang;
+            
+            // Create a unique file path
+            const audioPath = `pronunciations/${langCode}/${englishText}.mp3`;
+            const storageRef = ref(storage, audioPath);
+            
+            try {
+                // 1. Upload the audio blob
+                await uploadBytes(storageRef, audioBlob);
+                
+                // 2. Get the download URL
+                const downloadURL = await getDownloadURL(storageRef);
+                
+                // 3. Add the URL to our doc data
+                validatedDocDataToPromote.pronunciationURL = downloadURL;
+                
+                // 4. Promote the document to validated_sentences
+                await promoteToValidated(currentValidationDoc.id, validatedDocDataToPromote);
+                
+                showModal("Success!", "Translation and audio have been saved.");
+                loadNextValidationDoc(); // Load the next doc
+                
+            } catch (error) {
+                console.error("Audio upload failed:", error);
+                showModal("Upload Error", "Could not save the audio file. Please try again.");
+            } finally {
+                setLoading('audioSave', false); // Implement this
+            }
+        }
+        
+        async function skipAudioAndProceed() {
+            // Promote the document *without* the audio URL
+            if (!validatedDocDataToPromote) return;
+            
+            try {
+                await promoteToValidated(currentValidationDoc.id, validatedDocDataToPromote);
+                showModal("Success!", "Translation has been saved (audio skipped).");
+                loadNextValidationDoc();
+            } catch (error) {
+                console.error("Error promoting doc:", error);
+                showModal("Error", "Could not save the submission.");
+            }
+        }
+
+        // ---
+        
+        async function promoteToValidated(originalDocId, docData) {
             const normalizedEnglish = (docData.english || "unknown").toLowerCase();
             if (!normalizedEnglish || normalizedEnglish === "unknown") {
                  console.error("Cannot promote document with empty English text.");
-                 // Delete the malformed doc
                  await deleteDoc(doc(unvalidatedSentencesRef, originalDocId));
                  return;
             }
             
             const validatedDocRef = doc(db, `artifacts/${appId}/public/data/validated_sentences`, normalizedEnglish);
             
-            // Clean up the data for validation
+            // Clean up the data
             delete docData.approvals;
             delete docData.submittedBy;
-            docData.validatedAt = serverTimestamp();
+            // Ensure all lang fields are present and lowercase, even if empty
+            docData.english = (docData.english || "").toLowerCase();
+            docData.nyanja = (docData.nyanja || "").toLowerCase();
+            docData.bemba = (docData.bemba || "").toLowerCase();
+            docData.tonga = (docData.tonga || "").toLowerCase();
+            docData.lozi = (docData.lozi || "").toLowerCase();
 
             await setDoc(validatedDocRef, docData, { merge: true });
 
-            // 2. Delete the original doc from 'unvalidated_sentences'
             const originalDocRef = doc(unvalidatedSentencesRef, originalDocId);
             await deleteDoc(originalDocRef);
         }
 
         // --- UI & Helper Functions ---
+
+        /**
+         * Toggles the visibility of the correction input box.
+         */
+        function toggleCorrectionMode() {
+            const correctionArea = document.getElementById('correction-input-area');
+            const correctionText = document.getElementById('correction-text');
+            const correctBtn = document.getElementById('correct-btn');
+
+            if (correctionArea.style.display === 'none') {
+                // Show correction box
+                correctionArea.style.display = 'block';
+                correctionText.value = document.getElementById('validation-zambian').textContent;
+                correctionText.focus();
+                correctBtn.textContent = "Cancel Correction";
+                correctBtn.classList.remove('bg-yellow-500', 'text-gray-900', 'hover:bg-yellow-600');
+                correctBtn.classList.add('bg-gray-600', 'text-white', 'hover:bg-gray-700');
+            } else {
+                // Hide correction box
+                correctionArea.style.display = 'none';
+                correctionText.value = '';
+                correctBtn.textContent = "Suggest Correction";
+                correctBtn.classList.add('bg-yellow-500', 'text-gray-900', 'hover:bg-yellow-600');
+                correctBtn.classList.remove('bg-gray-600', 'text-white', 'hover:bg-gray-700');
+            }
+        }
+
         function switchTab(tabName) {
             const contributeContent = document.getElementById('contribute-content');
             const validateContent = document.getElementById('validate-content');
@@ -661,7 +800,6 @@
                 validateContent.style.display = 'block';
                 tabContribute.classList.remove('active');
                 tabValidate.classList.add('active');
-                // Load first doc for validation
                 loadNextValidationDoc(); 
             }
         }
@@ -672,7 +810,6 @@
             document.getElementById('validation-data').style.display = state === 'data' ? 'block' : 'none';
             document.getElementById('validation-buttons').style.display = state === 'data' ? 'grid' : 'none';
             
-            // Ensure correction mode is reset
             if (state !== 'data') {
                 if (document.getElementById('correction-input-area').style.display === 'block') {
                     toggleCorrectionMode();
@@ -686,15 +823,18 @@
                 document.getElementById('submit-icon').style.display = isLoading ? 'none' : 'inline';
                 document.getElementById('submit-spinner').style.display = isLoading ? 'inline-block' : 'none';
                 document.getElementById('submit-contribution-btn').disabled = isLoading;
+            } else if (type === 'audioSave') {
+                // Create a simple loading state for the audio buttons
+                saveAudioBtn.disabled = isLoading;
+                skipAudioBtn.disabled = isLoading;
+                saveAudioBtn.textContent = isLoading ? "Saving..." : "Save & Continue";
             }
-            // Add other loading types if needed
         }
 
         function showModal(title, message) {
-            // FIX: Add console log for easier debugging
             console.log(`Modal Shown: ${title} - ${message}`);
             document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message || "An error occurred. Please check the console."; // Add a fallback message
+            document.getElementById('modal-message').textContent = message || "An error occurred. Please check the console.";
             document.getElementById('error-modal').classList.add('flex');
         }
 
