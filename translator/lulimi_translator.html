@@ -141,9 +141,12 @@
         // --- FIX: Import signInWithCustomToken ---
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // --- NEW: Import Storage SDK ---
+        import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
 
         // --- Configuration ---
-        let db, auth;
+        let db, auth, storage; // <-- NEW: Added storage
         let validatedSentencesRef;
         let currentAudioUrl = null; // <-- NEW: Store audio URL
         
@@ -179,7 +182,7 @@
                 let activeConfig = isCanvas ? canvasFirebaseConfig : firebaseConfig;
 
                 // --- FIX: Check projectId on the *active* config ---
-                if (!activeConfig || !activeConfig.projectId) { // <-- TYPO WAS HERE
+                if (!activeConfig || !activeConfig.projectId) { 
                     const id = isCanvas ? (appId || "App ID") : (activeConfig.projectId || "Project ID");
                     throw new Error(`${id} is missing. The app cannot start.`);
                 }
@@ -187,6 +190,7 @@
                 const app = initializeApp(activeConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
+                storage = getStorage(app); // <-- NEW: Initialize Storage
 
                 // --- FIX: Use the consistent appId variable ---
                 validatedSentencesRef = collection(db, `artifacts/${appId}/public/data/validated_sentences`);
@@ -229,7 +233,8 @@
             const from = fromLang.value;
             const to = toLang.value;
             const text = inputText.value.trim();
-            const searchText = text.toLowerCase();
+            // --- FIX: Normalize to lowercase ---
+            const searchText = text.toLowerCase(); 
 
             if (!searchText) {
                 outputText.value = "Please enter text to translate.";
@@ -261,6 +266,7 @@
                     
                     if (pivotDoc && pivotDoc.english) {
                         // We found an English pivot, now find the target language
+                        // We use the pivotDoc.english as the new search key
                         docData = await findDoc(pivotDoc.english, 'english');
                         if (docData) {
                             result = docData[getLanguageField(to)];
@@ -294,7 +300,7 @@
                 let docSnap;
                 
                 if (searchField === 'english') {
-                    // We can do a direct lookup by document ID
+                    // We can do a direct lookup by document ID (which is the lowercase english text)
                     const docRef = doc(validatedSentencesRef, text);
                     docSnap = await getDoc(docRef);
                 } else {
@@ -313,10 +319,11 @@
                 return null; // Return null if not found
 
             } catch (error) {
-                console.error(`Firestore query failed: ${error.message}`);
-                // --- FIX: Show the *actual* Firebase error ---
+                // --- FIX: Log the *full* error object to the console ---
+                console.error("Firestore query failed:", error); 
+                
                 if (error.code === 'failed-precondition') {
-                     showModal("Database Error", "The query requires a database index that hasn't been created yet. Please check the console for a link to create it.");
+                     showModal("Database Error", "The query requires a database index that hasn't been created yet. Please check the console (F12) for a link to create it.");
                 } else {
                      showModal("Database Error", `Error searching database. (${error.code})`);
                 }
@@ -347,11 +354,15 @@
             const inputVal = inputText.value;
             const outputVal = outputText.value;
             
-            if (!outputVal.startsWith("Translation not found") && !outputVal.startsWith("Error")) {
+            // Only swap text if the output is a valid translation
+            if (outputVal && !outputVal.startsWith("Translation not found") && !outputVal.startsWith("An error occurred")) {
                  inputText.value = outputVal;
                  outputText.value = inputVal;
                  playAudioBtn.style.display = 'none'; // Hide audio button after swap
                  currentAudioUrl = null;
+            } else if (outputVal) {
+                // If output is an error, just clear the output
+                outputText.value = '';
             }
         }
         
