@@ -36,7 +36,7 @@
 
     <div class="w-full max-w-2xl">
         <header class="text-center mb-8">
-            <!-- SVG Logo REPLACED with Image Logo -->
+            <!-- Image Logo -->
             <img src="https://storage.googleapis.com/lulimi-ccp-project.firebasestorage.app/lulimi_logo.png" alt="Lulimi Logo" class="h-20 w-auto mx-auto mb-4" 
                  onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block'">
             <!-- Fallback text if logo fails to load -->
@@ -105,7 +105,7 @@
             <div class="mt-6">
                 <div class="flex justify-between items-center mb-2">
                     <label for="output-text" class="block text-sm font-medium text-gray-300">Translation</label>
-                    <!-- NEW: Play Audio Button -->
+                    <!-- Play Audio Button -->
                     <button id="play-audio-btn" style="display: none;" class="text-indigo-400 hover:text-indigo-300 transition-all" title="Play pronunciation">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.683 3.902 11 4.234 11 4.707V19.293c0 .473-.317.805-.707.414L5.586 15z" />
@@ -139,23 +139,21 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // --- FIX: Import signInWithCustomToken ---
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        // --- NEW: Import Storage SDK ---
         import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 
         // --- Configuration ---
-        let db, auth, storage; // <-- NEW: Added storage
+        let db, auth, storage; 
         let validatedSentencesRef;
-        let currentAudioUrl = null; // <-- NEW: Store audio URL
+        let currentAudioUrl = null; 
+        let isCanvas = false; // Flag to check if in Canvas environment
         
         const firebaseConfig = {
             apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q",
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
-            // --- FIX: Updated with correct bucket URL ---
             storageBucket: "lulimi-ccp-project.firebasestorage.app",
         };
         
@@ -163,8 +161,7 @@
             ? JSON.parse(__firebase_config) 
             : null;
             
-        // --- FIX: Use a consistent App ID for both canvas and production
-        // This ensures the translator always reads from the same database.
+        // Use a consistent App ID for both canvas and production
         const appId = 'default-app-id';
 
         // --- UI Elements ---
@@ -174,16 +171,22 @@
         const inputText = document.getElementById('input-text');
         const outputText = document.getElementById('output-text');
         const translateBtn = document.getElementById('translate-btn');
-        const playAudioBtn = document.getElementById('play-audio-btn'); // <-- NEW
+        const playAudioBtn = document.getElementById('play-audio-btn');
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const isCanvas = !!canvasFirebaseConfig;
-                // --- FIX: Use correct config variable ---
-                let activeConfig = isCanvas ? canvasFirebaseConfig : firebaseConfig;
-
-                // --- FIX: Check projectId on the *active* config ---
+                let activeConfig;
+                
+                if (canvasFirebaseConfig && typeof __app_id !== 'undefined') {
+                    console.log("Initializing with secure Canvas config.");
+                    activeConfig = canvasFirebaseConfig;
+                    isCanvas = true;
+                } else {
+                    console.log("Initializing with public production config.");
+                    activeConfig = firebaseConfig;
+                }
+                
                 if (!activeConfig || !activeConfig.projectId) { 
                     const id = isCanvas ? (appId || "App ID") : (activeConfig.projectId || "Project ID");
                     throw new Error(`${id} is missing. The app cannot start.`);
@@ -192,23 +195,19 @@
                 const app = initializeApp(activeConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                storage = getStorage(app); // <-- NEW: Initialize Storage
+                storage = getStorage(app); 
 
-                // --- FIX: Use the consistent appId variable ---
                 validatedSentencesRef = collection(db, `artifacts/${appId}/public/data/validated_sentences`);
                 
-                // --- FIX: Handle auth differently for canvas vs. production ---
+                // Handle auth
                 if (isCanvas && typeof __initial_auth_token !== 'undefined') {
-                    // We are in the canvas, use the provided token
                     await signInWithCustomToken(auth, __initial_auth_token);
                     console.log("Canvas sign-in successful.");
                 } else if (!isCanvas) {
-                    // We are on the live site, sign in anonymously
                     await signInAnonymously(auth);
                     console.log("Anonymous sign-in successful.");
                 } else {
-                    // We are in Canvas, but the token is missing for some reason
-                    // Still attempt anonymous sign-in
+                    // Fallback for canvas if token is missing
                     await signInAnonymously(auth);
                     console.log("Canvas token missing, attempting anonymous sign-in.");
                 }
@@ -217,7 +216,7 @@
                 translateBtn.addEventListener('click', handleTranslation);
                 swapBtn.addEventListener('click', swapLanguages);
                 document.getElementById('modal-close-btn').addEventListener('click', hideModal);
-                playAudioBtn.addEventListener('click', playPronunciation); // <-- NEW
+                playAudioBtn.addEventListener('click', playPronunciation); 
 
             } catch (error) {
                 console.error("Initialization failed:", error);
@@ -229,13 +228,12 @@
         async function handleTranslation() {
             setLoading(true);
             outputText.value = "Translating...";
-            playAudioBtn.style.display = 'none'; // <-- NEW: Hide button on new translation
+            playAudioBtn.style.display = 'none'; 
             currentAudioUrl = null;
 
             const from = fromLang.value;
             const to = toLang.value;
             const text = inputText.value.trim();
-            // --- FIX: Normalize to lowercase ---
             const searchText = text.toLowerCase(); 
 
             if (!searchText) {
@@ -246,7 +244,7 @@
 
             try {
                 let result = "Translation not found. Our database is still growing!";
-                let docData = null; // <-- NEW: Store the whole doc
+                let docData = null; 
                 
                 if (from === to) {
                     result = text;
@@ -267,8 +265,6 @@
                     const pivotDoc = await findDoc(searchText, getLanguageField(from));
                     
                     if (pivotDoc && pivotDoc.english) {
-                        // We found an English pivot, now find the target language
-                        // We use the pivotDoc.english as the new search key
                         docData = await findDoc(pivotDoc.english, 'english');
                         if (docData) {
                             result = docData[getLanguageField(to)];
@@ -278,16 +274,20 @@
 
                 outputText.value = result || "Translation not found. Our database is still growing!";
                 
-                // --- NEW: Audio Playback Logic ---
-                // We check the *final* document (docData) for the URL
                 if (docData && docData.pronunciationURL) {
                     currentAudioUrl = docData.pronunciationURL;
                     playAudioBtn.style.display = 'block';
                 }
 
             } catch (error) {
+                // --- FIX: Show the *real* error message in the modal ---
                 console.error("Translation Error:", error);
-                outputText.value = "An error occurred during translation.";
+                if (error.code === 'failed-precondition') {
+                     showModal("Database Error", "The query requires a database index. Please check the console (F12) for a link to create it, or ask the admin to create it manually.");
+                } else {
+                     showModal("Error", `An error occurred during translation. (${error.code || error.message})`);
+                }
+                outputText.value = "An error occurred.";
             } finally {
                 setLoading(false);
             }
@@ -298,42 +298,28 @@
          * Returns the document's data object or null if not found.
          */
         async function findDoc(text, searchField) {
-            try {
-                let docSnap;
-                
-                if (searchField === 'english') {
-                    // We can do a direct lookup by document ID (which is the lowercase english text)
-                    const docRef = doc(validatedSentencesRef, text);
-                    docSnap = await getDoc(docRef);
-                } else {
-                    // We must query the collection
-                    const q = query(validatedSentencesRef, where(searchField, "==", text), limit(1));
-                    const querySnapshot = await getDocs(q);
-                    if (!querySnapshot.empty) {
-                        docSnap = querySnapshot.docs[0];
-                    }
+            // No try/catch here, let the error propagate up to handleTranslation
+            
+            let docSnap;
+            
+            if (searchField === 'english') {
+                const docRef = doc(validatedSentencesRef, text);
+                docSnap = await getDoc(docRef);
+            } else {
+                const q = query(validatedSentencesRef, where(searchField, "==", text), limit(1));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    docSnap = querySnapshot.docs[0];
                 }
-
-                if (docSnap && docSnap.exists()) {
-                    return docSnap.data(); // Return the whole data object
-                }
-                
-                return null; // Return null if not found
-
-            } catch (error) {
-                // --- FIX: Log the *full* error object to the console ---
-                console.error("Firestore query failed:", error); 
-                
-                if (error.code === 'failed-precondition') {
-                     showModal("Database Error", "The query requires a database index that hasn't been created yet. Please check the console (F12) for a link to create it.");
-                } else {
-                     showModal("Database Error", `Error searching database. (${error.code})`);
-                }
-                return null;
             }
+
+            if (docSnap && docSnap.exists()) {
+                return docSnap.data(); // Return the whole data object
+            }
+            
+            return null; // Return null if not found
         }
         
-        // --- NEW: Audio Playback Function ---
         function playPronunciation() {
             if (currentAudioUrl) {
                 try {
@@ -356,14 +342,12 @@
             const inputVal = inputText.value;
             const outputVal = outputText.value;
             
-            // Only swap text if the output is a valid translation
             if (outputVal && !outputVal.startsWith("Translation not found") && !outputVal.startsWith("An error occurred")) {
                  inputText.value = outputVal;
                  outputText.value = inputVal;
-                 playAudioBtn.style.display = 'none'; // Hide audio button after swap
+                 playAudioBtn.style.display = 'none'; 
                  currentAudioUrl = null;
             } else if (outputVal) {
-                // If output is an error, just clear the output
                 outputText.value = '';
             }
         }
@@ -377,8 +361,9 @@
 
         function showModal(title, message) {
             console.log(`Modal Shown: ${title} - ${message}`);
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message || "An error occurred.";
+            // --- FIX: Add default text to prevent blank modal ---
+            document.getElementById('modal-title').textContent = title || "Error";
+            document.getElementById('modal-message').textContent = message || "An unknown error occurred.";
             document.getElementById('error-modal').classList.add('flex');
         }
 
