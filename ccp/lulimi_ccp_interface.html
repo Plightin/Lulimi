@@ -281,7 +281,8 @@
             apiKey: "AIzaSyBt_tv7FR5FxyDLpYxl8ZhyyZfqeB22e0Q",
             authDomain: "lulimi-ccp-project.firebaseapp.com",
             projectId: "lulimi-ccp-project",
-            storageBucket: "lulimi-ccp-project.appspot.com", // <-- Storage bucket must be defined
+            // --- FIX: Updated with correct bucket URL ---
+            storageBucket: "lulimi-ccp-project.firebasestorage.app",
         };
         
         const canvasFirebaseConfig = typeof __firebase_config !== 'undefined' 
